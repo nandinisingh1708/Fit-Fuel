@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Workout Logger - FitFuel</title>
+  <link rel="icon" type="image/png" href="Fitfuel favicon.png" />
+  <link rel="stylesheet" href="css/enhancements.css">
+
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+    html,body{scroll-behavior:smooth}
+    body{
+      background: linear-gradient(135deg,#141E30,#243B55);
+      color:#fff;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden
+    }
+    /* Header with image */
+    header.hero{
+      position:relative;text-align:center;padding:84px 20px;
+      background:url('https://images.unsplash.com/photo-1599058917212-d750089bc06d?auto=format&fit=crop&w=2000&q=80') center/cover no-repeat;
+      border-radius:0 0 40px 40px; box-shadow:0 10px 30px rgba(0,0,0,.35)
+    }
+    header.hero::after{
+      content:"";position:absolute;inset:0;border-radius:0 0 40px 40px;
+      background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.55))
+    }
+    header.hero h1,header.hero p{position:relative;z-index:1}
+    header.hero h1{font-size:3.1rem;font-weight:800;margin-bottom:10px;animation:fadeDown 1s ease}
+    header.hero p{opacity:.95;animation:fadeUp 1s ease}
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pop{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+
+    /* Grid */
+    .workout-list{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:26px;padding:46px 24px;flex:1
+    }
+    .workout-card{
+      background:rgba(255,255,255,.08);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:22px;text-align:center;
+      box-shadow:0 12px 28px rgba(0,0,0,.35);transition:.35s;animation:rise .8s ease both
+    }
+    .workout-card:hover{transform:translateY(-10px) scale(1.035);box-shadow:0 18px 40px rgba(0,0,0,.55)}
+    .workout-card h2{font-size:1.85rem;margin-bottom:14px;color:#ffcc70}
+    .workout-card ul{list-style:none}
+    .workout-card li{
+      padding:12px 12px;margin:6px 0;border-radius:12px;background:rgba(255,255,255,.12);
+      transition:.25s;cursor:pointer
+    }
+    .workout-card li:hover{background:rgba(255,255,255,.25);transform:scale(1.03)}
+
+    /* Sections */
+    .section{
+      padding:50px 22px
+    }
+    .section h2{
+      font-size:2rem;margin:0 auto 18px auto;text-align:center;color:#ffcc70
+    }
+    .section p.lead{
+      text-align:center;opacity:.92;margin-bottom:22px
+    }
+
+    /* Programs grid */
+    .programs{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px
+    }
+    .program{
+      background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:18px;
+      padding:18px;box-shadow:0 10px 26px rgba(0,0,0,.35);animation:rise .8s ease both
+    }
+    .program h3{margin-bottom:8px}
+    .program .badge{
+      display:inline-block;padding:6px 10px;border-radius:999px;font-size:.82rem;
+      background:rgba(255,204,112,.18);border:1px solid rgba(255,204,112,.4);margin-bottom:10px
+    }
+    .program ul{margin-left:18px}
+    .program li{margin:6px 0;opacity:.95}
+
+    /* Tips grid */
+    .tips-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px
+    }
+    .tip-card{
+      background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+      border-radius:16px;padding:16px;box-shadow:0 10px 26px rgba(0,0,0,.35)
+    }
+    .tip-card h4{margin-bottom:8px;color:#ffcc70}
+    .tip-card ul{margin-left:18px}
+    .tip-card li{margin:6px 0;opacity:.95}
+
+    /* Motivation */
+    .motivation{
+      background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.12);border-radius:22px;max-width:980px;margin:0 auto;
+      padding:26px 20px;box-shadow:0 12px 30px rgba(0,0,0,.4)
+    }
+    .motivation .quote{
+      text-align:center;font-size:1.35rem;line-height:1.6;min-height:90px;opacity:0;
+      animation:fadeIn 1s forwards
+    }
+    @keyframes fadeIn{to{opacity:1}}
+    .motivation .author{margin-top:8px;text-align:center;opacity:.8;font-size:.98rem}
+    .motivation .dots{display:flex;gap:6px;justify-content:center;margin-top:12px}
+    .motivation .dot{
+      width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);transition:.25s
+    }
+    .motivation .dot.active{background:#ffcc70}
+
+    /* Modal (video only, images removed) */
+    .modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);
+      align-items:center;justify-content:center;padding:18px}
+    .modal.open{display:flex}
+    .modal-content{
+      position:relative;background:#0f1115;border:1px solid rgba(255,255,255,.15);
+      border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.6);padding:16px;max-width:940px;width:100%;
+      animation:pop .35s ease
+    }
+    .close{
+      position:absolute;top:-12px;right:-12px;width:42px;height:42px;border-radius:50%;
+      background:#ff4757;color:#fff;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center
+    }
+    .close:hover{background:#ff3044}
+    .modal-header{padding:8px 6px 10px 6px;text-align:left}
+    .modal-title{font-size:1.4rem;margin-bottom:6px}
+    .modal-tip{font-size:.95rem;color:#d6d6d6;opacity:.9}
+    .player iframe{width:100%;height:420px;border:0;border-radius:12px}
+
+    footer{text-align:center;padding:24px;background:rgba(0,0,0,.35);font-size:.95rem;border-top:1px solid rgba(255,255,255,.12)}
+    .tiny{opacity:.8}
+
+    /* Small helper layout for long page */
+    .divider{
+      height:1px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.25),rgba(255,255,255,.05));
+      margin:36px auto;width:92%
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>💪 Workout Library</h1>
+    <p>Comprehensive exercise database with video tutorials for every body part</p>
+    
+    <!-- BMR Integration Alert -->
+    <div id="bmrAlert" style="max-width:600px; margin:16px auto; padding:16px; background:rgba(255,255,255,0.1); border-radius:12px; display:none; text-align:center;">
+      <strong>📊 Your BMR Data Loaded!</strong>
+      <div style="margin-top:8px; opacity:0.9;" id="bmrSummary"></div>
+      <div style="margin-top:8px; opacity:0.8; font-size:0.9rem;" id="workoutRecommendation"></div>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav style="background: rgba(0,0,0,0.8); padding: 10px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); margin-top: 20px;">
+    <a href="index.html" style="color: #fff; text-decoration: none; font-weight: bold; margin: 0 20px; padding: 8px 12px; border-radius: 8px; transition: background 0.3s;">🏠 Home</a>
+    <a href="meals.html" style="color: #fff; text-decoration: none; font-weight: bold; margin: 0 20px; padding: 8px 12px; border-radius: 8px; transition: background 0.3s;">🍽️ Meals</a>
+  </nav>
+  <section class="workout-list" id="library">
+    <!-- CHEST -->
+    <div class="workout-card">
+      <h2>🏋 Chest</h2>
+      <ul>
+        <li onclick="openModal('Push-Up',
+          'Keep body in a straight line; elbows ~45°; chest touches ground lightly.',
+          'ignored',
+          'https://www.youtube.com/embed/IODxDxX7oi4')">Push Ups</li>
+        <li onclick="openModal('Barbell Bench Press',
+          'Scapula retracted, slight arch, feet planted; control the descent.',
+          'ignored',
+          'https://www.youtube.com/embed/gRVjAtPip0Y')">Bench Press</li>
+        <li onclick="openModal('Incline Bench Press',
+          'Incline 30–45°. Touch upper chest; don’t flare elbows too wide.',
+          'ignored',
+          'https://www.youtube.com/embed/8iPEnn-ltC8')">Incline Press</li>
+        <li onclick="openModal('Dumbbell Fly',
+          'Soft elbows; stretch chest, not shoulders; arc motion, don’t bang DBs.',
+          'ignored',
+          'https://www.youtube.com/embed/eozdVDA78K0')">Dumbbell Fly</li>
+        <li onclick="openModal('Cable Crossover',
+          'Start high → sweep down & across; squeeze at midline.',
+          'ignored',
+          'https://www.youtube.com/embed/taI4XduLpTk')">Cable Crossover</li>
+        <li onclick="openModal('Chest Dips',
+          'Lean slightly forward; flare a bit to load chest; full range.',
+          'ignored',
+          'https://www.youtube.com/embed/2z8JmcrW-As')">Chest Dips</li>
+      </ul>
+    </div>
+
+    <!-- BACK -->
+    <div class="workout-card">
+      <h2>💪 Back</h2>
+      <ul>
+        <li onclick="openModal('Pull-Up',
+          'Think chest to bar; drive elbows down; avoid shrugging.',
+          'ignored',
+          'https://www.youtube.com/embed/eGo4IYlbE5g')">Pull Ups</li>
+        <li onclick="openModal('Deadlift',
+          'Neutral spine; bar close to shins; push floor away, don’t yank.',
+          'ignored',
+          'https://www.youtube.com/embed/op9kVnSso6Q')">Deadlifts</li>
+        <li onclick="openModal('Barbell Row',
+          'Hinge hard; row to lower ribs; don’t jerk upper body.',
+          'ignored',
+          'https://www.youtube.com/embed/vT2GjY_Umpw')">Barbell Row</li>
+        <li onclick="openModal('Lat Pulldown',
+          'Grip just outside shoulder width; pull to upper chest.',
+          'ignored',
+          'https://www.youtube.com/embed/CAwf7n6Luuc')">Lat Pulldown</li>
+        <li onclick="openModal('Seated Cable Row',
+          'Neutral back; pull handle to navel; squeeze shoulder blades.',
+          'ignored',
+          'https://www.youtube.com/embed/GZbfZ033f74')">Seated Cable Row</li>
+        <li onclick="openModal('T-Bar Row',
+          'Chest up; drive elbows back; keep hips steady.',
+          'ignored',
+          'https://www.youtube.com/embed/8iPEnn-ltC8?start=1')">T-Bar Row</li>
+      </ul>
+    </div>
+
+    <!-- SHOULDERS -->
+    <div class="workout-card">
+      <h2>🏋‍♂ Shoulders</h2>
+      <ul>
+        <li onclick="openModal('Overhead Press',
+          'Brace core & glutes; bar path close to face; lockout overhead.',
+          'ignored',
+          'https://www.youtube.com/embed/2yjwXTZQDDI')">Overhead Press</li>
+        <li onclick="openModal('Lateral Raise',
+          'Lead with elbows; stop at shoulder height; slow negatives.',
+          'ignored',
+          'https://www.youtube.com/embed/3VcKaXpzqRo')">Lateral Raise</li>
+        <li onclick="openModal('Front Raise',
+          'Thumbs slightly up; don’t swing torso; control top.',
+          'ignored',
+          'https://www.youtube.com/embed/-t7fuZ0KhDA')">Front Raise</li>
+        <li onclick="openModal('Rear Delt Fly',
+          'Hinge; sweep out & back; think “pinkies high”.',
+          'ignored',
+          'https://www.youtube.com/embed/0G2_XV7slIg')">Rear Delt Fly</li>
+        <li onclick="openModal('Face Pull',
+          'Rope high to face; elbows high; external rotation at end.',
+          'ignored',
+          'https://www.youtube.com/embed/vcBig73ojpE')">Face Pulls</li>
+        <li onclick="openModal('Arnold Press',
+          'Start palms in; rotate as you press; full range.',
+          'ignored',
+          'https://www.youtube.com/embed/3ml7BH7mNwQ')">Arnold Press</li>
+      </ul>
+    </div>
+
+    <!-- ARMS -->
+    <div class="workout-card">
+      <h2>💪 Arms</h2>
+      <ul>
+        <li onclick="openModal('Biceps Curl',
+          'Keep elbows pinned; don’t lean back; squeeze at top.',
+          'ignored',
+          'https://www.youtube.com/embed/ykJmrZ5v0Oo')">Bicep Curls</li>
+        <li onclick="openModal('Hammer Curl',
+          'Neutral grip; control lowering; great for brachialis.',
+          'ignored',
+          'https://www.youtube.com/embed/zC3nLlEvin4')">Hammer Curls</li>
+        <li onclick="openModal('Triceps Dips',
+          'Keep shoulders down; slight forward lean if comfortable.',
+          'ignored',
+          'https://www.youtube.com/embed/0326dy_-CzM')">Tricep Dips</li>
+        <li onclick="openModal('Triceps Pushdown',
+          'Elbows locked to sides; extend fully; avoid shoulder sway.',
+          'ignored',
+          'https://www.youtube.com/embed/2-LAMcpzODU')">Tricep Pushdown</li>
+        <li onclick="openModal('Skull Crushers',
+          'Upper arm stable; lower to behind forehead; full stretch.',
+          'ignored',
+          'https://www.youtube.com/embed/d_KZxkY_0cM')">Skull Crushers</li>
+        <li onclick="openModal('Preacher Curl',
+          'Shoulders down; don’t bounce; peak squeeze.',
+          'ignored',
+          'https://www.youtube.com/embed/1c0p7UxVzkw')">Preacher Curl</li>
+      </ul>
+    </div>
+
+    <!-- LEGS -->
+    <div class="workout-card">
+      <h2>🦵 Legs</h2>
+      <ul>
+        <li onclick="openModal('Back Squat',
+          'Tripod feet; sit between hips; keep ribs stacked over pelvis.',
+          'ignored',
+          'https://www.youtube.com/embed/YaXPRqUwItQ')">Squats</li>
+        <li onclick="openModal('Romanian Deadlift (RDL)',
+          'Hinge; soft knees; drag hips back; feel hamstrings stretch.',
+          'ignored',
+          'https://www.youtube.com/embed/JCXUYuzwNrM')">Romanian Deadlift</li>
+        <li onclick="openModal('Walking Lunge',
+          'Long step; knee tracks toes; torso tall.',
+          'ignored',
+          'https://www.youtube.com/embed/QOVaHwm-Q6U')">Lunges</li>
+        <li onclick="openModal('Leg Press',
+          'Feet mid-platform; lower till thighs ~90°; no butt-wink.',
+          'ignored',
+          'https://www.youtube.com/embed/IZxyjW7MPJQ')">Leg Press</li>
+        <li onclick="openModal('Standing Calf Raise',
+          'Pause at stretch & squeeze; full range.',
+          'ignored',
+          'https://www.youtube.com/embed/YMmgqO8Jo-k')">Calf Raises</li>
+        <li onclick="openModal('Bulgarian Split Squat',
+          'Front shin vertical; chest proud; big stretch on rear hip.',
+          'ignored',
+          'https://www.youtube.com/embed/2C-uNgKwPLE')">Bulgarian Split Squat</li>
+      </ul>
+    </div>
+
+    <!-- ABS / CORE -->
+    <div class="workout-card">
+      <h2>🔥 Abs / Core</h2>
+      <ul>
+        <li onclick="openModal('Plank',
+          'Ribs down; glutes tight; head neutral.',
+          'ignored',
+          'https://www.youtube.com/embed/pSHjTRCQxIw')">Plank</li>
+        <li onclick="openModal('Crunch',
+          'Think ribs to pelvis; lower back stays glued.',
+          'ignored',
+          'https://www.youtube.com/embed/Xyd_fa5zoEU')">Crunches</li>
+        <li onclick="openModal('Hanging Leg Raise',
+          'Posterior tilt; avoid swinging; lift from abs, not hips only.',
+          'ignored',
+          'https://www.youtube.com/embed/JB2oyawG9KI')">Leg Raises</li>
+        <li onclick="openModal('Bicycle Crunch',
+          'Slow & controlled; elbow toward knee, not knee to elbow.',
+          'ignored',
+          'https://www.youtube.com/embed/Iwyvozckjak')">Bicycle Crunch</li>
+        <li onclick="openModal('Mountain Climbers',
+          'Plank rigid; drive knees fast without hips bouncing.',
+          'ignored',
+          'https://www.youtube.com/embed/nmwgirgXLYM')">Mountain Climbers</li>
+        <li onclick="openModal('Russian Twist',
+          'Tall chest; rotate from ribs; tap lightly each side.',
+          'ignored',
+          'https://www.youtube.com/embed/wkD8rjkodUI')">Russian Twist</li>
+      </ul>
+    </div>
+
+    <!-- CARDIO -->
+    <div class="workout-card">
+      <h2>🏃 Cardio</h2>
+      <ul>
+        <li onclick="openModal('Jump Rope',
+          'Wrists turn rope; small hops; soft knees.',
+          'ignored',
+          'https://www.youtube.com/embed/1BZM2Vre5oc')">Jump Rope</li>
+        <li onclick="openModal('Burpees',
+          'Land soft; chest to floor; jump & clap overhead.',
+          'ignored',
+          'https://www.youtube.com/embed/tu8u2Ap7XXM')">Burpees</li>
+        <li onclick="openModal('Rowing (Erg)',
+          'Legs → hips → arms; return arms → hips → legs.',
+          'ignored',
+          'https://www.youtube.com/embed/6kALZikXxLc')">Rowing Machine</li>
+        <li onclick="openModal('Cycling',
+          'Cadence steady; slight bend at knee; relaxed grip.',
+          'ignored',
+          'https://www.youtube.com/embed/1vbR2Yc9hZ0')">Cycling</li>
+        <li onclick="openModal('Stair Climber',
+          'Full foot contact; stand tall; steady pace.',
+          'ignored',
+          'https://www.youtube.com/embed/sNFm4z9o0Xg')">Stair Climber</li>
+        <li onclick="openModal('HIIT Basics',
+          '20–40s hard / 40–80s easy; quality > quantity.',
+          'ignored',
+          'https://www.youtube.com/embed/ml6cT4AZdqI')">HIIT Intervals</li>
+      </ul>
+    </div>
+
+    <!-- FULL BODY -->
+    <div class="workout-card">
+      <h2>⚡ Full Body</h2>
+      <ul>
+        <li onclick="openModal('Kettlebell Swing',
+          'Hinge, don’t squat; snap hips; bell floats at chest height.',
+          'ignored',
+          'https://www.youtube.com/embed/YSx5i4xGzLQ')">Kettlebell Swing</li>
+        <li onclick="openModal('Thruster',
+          'Front squat + press; drive from legs; breathe at top.',
+          'ignored',
+          'https://www.youtube.com/embed/2yjwXTZQDDI')">Thrusters</li>
+        <li onclick="openModal('Clean & Press',
+          'Explode through hips; rack elbows high; press after balance.',
+          'ignored',
+          'https://www.youtube.com/embed/VEQu1JY6t0s')">Clean & Press</li>
+        <li onclick="openModal('Burpee Pull-Up',
+          'Burpee → jump to bar → strict pull; control descent.',
+          'ignored',
+          'https://www.youtube.com/embed/4QdZrBQJcLk')">Burpee Pull-Ups</li>
+        <li onclick="openModal('Battle Ropes',
+          'Soft knees; waves from shoulders; breathe steady.',
+          'ignored',
+          'https://www.youtube.com/embed/ZoGYF_4rT8I')">Battle Ropes</li>
+        <li onclick="openModal('Turkish Get-Up',
+          'Eyes on bell; move slow between steps; lockout throughout.',
+          'ignored',
+          'https://www.youtube.com/embed/0bWRPC49-KI')">Turkish Get-Up</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PROGRAMS: Beginner → Intermediate → Advanced -->
+  <section class="section" id="programs">
+    <h2>📈 Programs: Beginner → Intermediate → Advanced</h2>
+    <p class="lead">Pick the level that matches your experience. Keep 1–2 reps in reserve, progress weekly.</p>
+    <div class="programs">
+      <div class="program">
+        <span class="badge">Beginner • 3 days/week</span>
+        <h3>Full-Body Foundation (A/B Split)</h3>
+        <ul>
+          <li><b>Day A:</b> Squat 3×5, Push-ups/Bench 3×5-8, Bent-over Row 3×8, Plank 3×30s, Walk 15-20m</li>
+          <li><b>Day B:</b> Romanian Deadlift 3×8, Overhead Press 3×5, Lat Pulldown 3×8, Lunges 2×10/leg, Light Cardio 15m</li>
+          <li><b>Progression:</b> Add 2.5-5kg when you can complete all sets with 2 reps in reserve</li>
+          <li><b>Rest:</b> 48-72 hours between sessions, focus on form over weight</li>
+        </ul>
+      </div>
+      <div class="program">
+        <span class="badge">Intermediate • 4 days/week</span>
+        <h3>Upper / Lower Power Split</h3>
+        <ul>
+          <li><b>Upper Power:</b> Bench Press 4×6, Pull-ups 4×6-8, Incline DB Press 3×8-10, Cable Row 3×10, Face Pulls 3×15</li>
+          <li><b>Lower Power:</b> Back Squat 4×5, Romanian Deadlift 3×8, Bulgarian Split Squat 3×10/leg, Calf Raises 4×15</li>
+          <li><b>Upper Hypertrophy:</b> DB Bench 4×8-12, Lat Pulldown 4×10, Lateral Raises 3×12-15, Bicep Curls 3×12, Tricep Pushdowns 3×12</li>
+          <li><b>Lower Hypertrophy:</b> Leg Press 4×12-15, Stiff Leg Deadlift 3×10, Walking Lunges 3×12/leg, Leg Curls 3×12, Abs Circuit 10m</li>
+        </ul>
+      </div>
+      <div class="program">
+        <span class="badge">Advanced • 5–6 days/week</span>
+        <h3>Push / Pull / Legs + Specialization</h3>
+        <ul>
+          <li><b>Push (Chest Focus):</b> Bench Press 5×3-5, Incline DB Press 4×6-8, Weighted Dips 3×8-10, Cable Flyes 3×12, Overhead Press 4×6, Tricep Work 4 sets</li>
+          <li><b>Pull (Back Focus):</b> Deadlift 5×3-5, Weighted Pull-ups 4×5-8, Barbell Rows 4×6-8, Cable Rows 3×10, Face Pulls 3×15, Bicep Work 4 sets</li>
+          <li><b>Legs (Quad Focus):</b> Back Squat 5×3-5, Romanian Deadlift 4×6-8, Bulgarian Split Squats 3×10/leg, Leg Press 3×12-15, Calf Raises 4×15, Core Circuit 15m</li>
+          <li><b>Optional Days:</b> Arms/Shoulders specialization, Cardio/Conditioning, or Active Recovery</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- WORKOUT / NUTRITION / RECOVERY TIPS -->
+  <section class="section" id="tips">
+    <h2>🎯 Workout Tips</h2>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <h4>Form (In Short)</h4>
+        <ul>
+          <li>Braced core, neutral spine, steady breathing</li>
+          <li>Full range of motion, no ego lifting</li>
+          <li>Control the eccentric (lowering) 2–3s</li>
+          <li>Track workouts & aim for small weekly progress</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <h4>Warm-up</h4>
+        <ul>
+          <li>5–8 min light cardio to raise temp</li>
+          <li>2 light sets before working sets</li>
+          <li>Specific activation (e.g., band pull-aparts)</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <h4>Progression</h4>
+        <ul>
+          <li>When all sets feel strong → add 2.5–5%</li>
+          <li>Keep 1–2 reps in reserve on compounds</li>
+          <li>Deload 1 week every 6–8 weeks if needed</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="nutrition">
+    <h2>🍽 Nutrition Tips</h2>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <h4>Basics</h4>
+        <ul>
+          <li>Protein ~1.6–2.2 g/kg bodyweight</li>
+          <li>80–90% whole foods, 10–20% flexible</li>
+          <li>Hydration: ~30–35 ml/kg daily</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <h4>For Muscle Gain</h4>
+        <ul>
+          <li>Small surplus: +200–300 kcal/day</li>
+          <li>Prioritize peri-workout carbs & protein</li>
+          <li>Sleep 7–9 hours to maximize growth</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <h4>For Fat Loss</h4>
+        <ul>
+          <li>Moderate deficit: −300–500 kcal/day</li>
+          <li>High-volume foods: fruits, veggies, lean proteins</li>
+          <li>Hit protein & lift to keep muscle</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="recovery">
+    <h2>🧘 Recovery Tips</h2>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <h4>Sleep</h4>
+        <ul>
+          <li>7–9 hours, consistent schedule</li>
+          <li>Cool, dark room; limit screens before bed</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <h4>Active Recovery</h4>
+        <ul>
+          <li>Walk 15–30 min on rest days</li>
+          <li>Mobility 10–15 min: hips, T-spine, ankles</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <h4>Listen to Your Body</h4>
+        <ul>
+          <li>Joint pain ≠ normal: regress, check form</li>
+          <li>High fatigue? Reduce sets by 20–30% this week</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- MOTIVATION (Auto-changing) -->
+  <section class="section" id="motivation">
+    <h2>⚡ Daily Motivation</h2>
+    <p class="lead">Tiny wins compound. Show up, even when it’s not perfect.</p>
+    <div class="motivation">
+      <div id="quote" class="quote"></div>
+      <div id="author" class="author tiny"></div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </section>
+
+  <!-- MODAL (images removed) -->
+  <div id="videoModal" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <button class="close" id="closeModal" aria-label="Close">&times;</button>
+      <div class="modal-header">
+        <div class="modal-title" id="exerciseTitle">Title</div>
+        <div class="modal-tip tiny" id="exerciseTip">Tip</div>
+      </div>
+      <div class="player">
+        <iframe id="exerciseVideo" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="Exercise video"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p> 2025 <a href="index.html" style="text-decoration: none; color: inherit;">FitFuel</a> — Stay consistent, hydrate, and train smart.</p>
+  </footer>
+
+  <script>
+    // Load BMR data for workout recommendations
+    let bmrData = null;
+    try {
+      const stored = localStorage.getItem('fitfuel_bmr_data');
+      if (stored) {
+        bmrData = JSON.parse(stored);
+        // Check if data is less than 24 hours old
+        if (Date.now() - bmrData.timestamp < 24 * 60 * 60 * 1000) {
+          displayBMRAlert(bmrData);
+        }
+      }
+    } catch (e) {
+      console.log('No BMR data found');
+    }
+
+    function displayBMRAlert(data) {
+      const alert = document.getElementById('bmrAlert');
+      const summary = document.getElementById('bmrSummary');
+      const recommendation = document.getElementById('workoutRecommendation');
+      
+      summary.innerHTML = `Target: ${data.calories} kcal/day • Goal: ${data.goal.charAt(0).toUpperCase() + data.goal.slice(1)} • BMR: ${data.bmr}`;
+      
+      let workoutAdvice = '';
+      if (data.goal === 'loss') {
+        workoutAdvice = ' Focus on cardio + strength training. Try HIIT 3x/week + full-body workouts 2x/week.';
+      } else if (data.goal === 'gain') {
+        workoutAdvice = ' Focus on progressive overload. Try Push/Pull/Legs split 4-6x/week with compound movements.';
+      } else {
+        workoutAdvice = ' Balanced approach: 3x strength training + 2x cardio per week for maintenance.';
+      }
+      
+      recommendation.innerHTML = workoutAdvice;
+      alert.style.display = 'block';
+    }
+
+    // ======= Modal Logic (no images) =======
+    const modal = document.getElementById('videoModal');
+    const closeBtn = document.getElementById('closeModal');
+    const titleEl = document.getElementById('exerciseTitle');
+    const tipEl = document.getElementById('exerciseTip');
+    const vidEl = document.getElementById('exerciseVideo');
+
+    function openModal(title, tip, _imgIgnored, video){
+      titleEl.textContent = title;
+      tipEl.textContent = tip;
+      vidEl.src = video + (video.includes('?') ? '&' : '?') + 'autoplay=1&rel=0&modestbranding=1';
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+    }
+    function closeModal(){
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      vidEl.src = ''; // stop video
+    }
+    closeBtn.addEventListener('click', closeModal);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('open')) closeModal(); });
+    window.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+    // ======= Motivation Rotator =======
+    const quotes = [
+      {q:"You don't need a new plan, you need to stick to the old one longer.", a:"— Unknown"},
+      {q:"Progress, not perfection. Missed one day? Don't miss two.", a:"— Coach's Rule"},
+      {q:"Discipline is choosing what you want most over what you want now.", a:"— Abraham Lincoln (attributed)"},
+      {q:"Small daily improvements are the key to long-term results.", a:"— Unknown"},
+      {q:"If it doesn't challenge you, it won't change you.", a:"— Fred DeVito"},
+      {q:"Most people need consistency more than intensity.", a:"— James Clear (paraphrased)"},
+      {q:"The hard part isn't getting your body in shape. It's getting your mind in shape.", a:"— Unknown"},
+      {q:"Action cures doubt. Start the set.", a:"— Unknown"},
+      {q:"You won't always be motivated, so you must learn to be disciplined.", a:"— Unknown"},
+      {q:"Strength doesn't come from what you can do. It comes from overcoming what you thought you couldn't.", a:"— Rikki Rogers"},
+      {q:"The only bad workout is the one that didn't happen.", a:"— Unknown"},
+      {q:"Show up. Do the basics. Repeat.", a:"— FitFuel"}
+    ];
+    let qi = 0;
+    const quoteEl = document.getElementById('quote');
+    const authorEl = document.getElementById('author');
+    const dotsWrap = document.getElementById('dots');
+
+    function renderDots(){
+      dotsWrap.innerHTML = '';
+      quotes.forEach((_, i)=>{
+        const d = document.createElement('div');
+        d.className = 'dot' + (i===qi ? ' active' : '');
+        dotsWrap.appendChild(d);
+      });
+    }
+    function showQuote(i){
+      qi = i % quotes.length;
+      quoteEl.style.opacity = 0;
+      authorEl.style.opacity = 0;
+      setTimeout(()=>{
+        quoteEl.textContent = '“' + quotes[qi].q + '”';
+        authorEl.textContent = quotes[qi].a;
+        quoteEl.style.opacity = 1;
+        authorEl.style.opacity = .9;
+        renderDots();
+      }, 250);
+    }
+    showQuote(0);
+    setInterval(()=> showQuote(qi+1), 6000);
+
+    // Optional: click dots to jump
+    dotsWrap.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('dot')){
+        const idx = Array.from(dotsWrap.children).indexOf(e.target);
+        showQuote(idx);
+      }
+    });
+  </script>
+
+  <!-- Load utilities and add form enhancements -->
+  <script src="js/utils.js"></script>
+  <script>
+    // Initialize theme
+    document.addEventListener('DOMContentLoaded', function() {
+      theme.apply();
+      
+      // Add logout functionality
+      const logoutBtn = document.querySelector('a[href="index.html"]');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          StorageManager.remove('authToken');
+          StorageManager.remove('currentUser');
+          window.location.href = 'index.html';
+        });
+      }
+    });
+  </script>
+</body>
+</html>

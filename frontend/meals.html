@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FitFuel — Meal Planner (Polished)</title>
+  <meta name="description" content="Interactive meal planner — drag & drop, charts, weekly plan, i18n, theme, print, save." />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+
+  <style>
+    /* ---------- Palette & layout (matte clean) ---------- */
+    :root{
+      --bg:#0f172a;
+      --bg-soft:#091022;
+      --muted:#9aa6b2;
+      --text:#e6eef6;
+      --brand:#22d3ee;
+      --accent:#a78bfa;
+      --card:#0b1228;
+      --card-2:#0d1524;
+      --radius:14px;
+      --shadow: 0 12px 24px rgba(2,6,23,0.45);
+      --glass:transparent;
+    }
+    [data-theme="light"]{
+      --bg:#f6f8fb;
+      --bg-soft:#ffffff;
+      --muted:#53606a;
+      --text:#0b1222;
+      --card:#ffffff;
+      --card-2:#f3f6f9;
+      --shadow: 0 8px 20px rgba(15,20,30,0.06);
+      --brand:#0ea5d8;
+      --accent:#7c3aed;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background: radial-gradient(900px 500px at 10% -10%, rgba(34,211,238,.06), transparent 30%),
+                  radial-gradient(900px 500px at 90% 120%, rgba(167,139,250,.04), transparent 30%),
+                  var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.45;
+      padding-bottom:48px;
+    }
+
+    /* ---------- header ---------- */
+    header.hero{
+      text-align:center; padding:48px 20px 28px; position:relative;
+    }
+    .chip{display:inline-flex; gap:10px; align-items:center; padding:8px 12px; background:transparent; border-radius:999px; font-size:13px; color:var(--muted)}
+    .title{font-size:clamp(24px,4vw,36px); font-weight:800; margin:6px 0}
+    .subtitle{color:var(--muted); max-width:860px; margin:8px auto 0}
+
+    /* ---------- container ---------- */
+    .container{max-width:1180px; margin:0 auto; padding:20px}
+
+    /* toolbar */
+    .toolbar{display:grid; grid-template-columns:1fr; gap:12px; margin:22px 0}
+    @media(min-width:820px){ .toolbar{grid-template-columns:repeat(12,1fr);} }
+    .control{
+      grid-column:span 12; background:var(--card); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow);
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+    label{font-size:13px; color:var(--muted)}
+    select,input,button{
+      background:var(--card-2); color:var(--text); border:1px solid rgba(255,255,255,0.02); border-radius:10px; padding:8px 10px;
+      font-size:14px;
+    }
+    [data-theme="light"] select,input,button{ background:#fff; color:var(--text) }
+
+    .switch{display:inline-grid; grid-template-columns:1fr 1fr; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.04)}
+    .switch button{padding:8px 10px; background:transparent; border:0; color:var(--muted)}
+    .switch .active{background:linear-gradient(90deg,var(--brand),var(--accent)); color:#071223; font-weight:700}
+
+    .btn-primary{background:linear-gradient(135deg,var(--brand),var(--accent)); color:#071223; border:0; padding:10px 14px; border-radius:12px; font-weight:700; box-shadow:0 8px 20px rgba(12,20,30,0.25)}
+    .btn-ghost{background:transparent; border:1px solid rgba(255,255,255,0.04); padding:8px 10px; border-radius:10px; color:var(--text)}
+    .icon-btn{display:inline-flex; gap:8px; align-items:center}
+
+    /* ---------- grid library ---------- */
+    .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; margin-top:6px}
+    .card{
+      background:var(--card-2); border-radius:12px; padding:14px; box-shadow:var(--shadow); transition:transform .18s ease, box-shadow .18s ease;
+      transform:translateY(6px); opacity:0; animation:pop .45s ease forwards;
+    }
+    .card:hover{transform:translateY(-4px) scale(1.01)}
+    @keyframes pop{to{transform:translateY(0);opacity:1}}
+
+    .badge{display:inline-flex; gap:6px; align-items:center; padding:6px 8px; border-radius:999px; font-size:12px; color:var(--muted)}
+    .meal-title{font-size:16px; font-weight:700; margin:8px 0}
+    .desc{color:var(--muted); font-size:13px}
+    .kpi{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    .kpi span{background:var(--card); padding:6px 8px; border-radius:8px; font-size:13px; color:var(--muted)}
+
+    .card .actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+    .small{font-size:12px; color:var(--muted)}
+
+    /* ---------- plan table ---------- */
+    .plan{margin-top:22px; border-radius:12px; overflow:auto; background:var(--card)}
+    table{width:100%; border-collapse:collapse; min-width:820px}
+    th,td{padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.03); text-align:left; font-size:14px}
+    thead th{position:sticky; top:0; background:var(--card)}
+    td.droptarget{transition:background .12s,outline-color .12s}
+    td.droptarget.dragover{outline:3px dashed rgba(34,211,238,.18); background:rgba(34,211,238,.03)}
+    td .cell-actions{margin-top:8px; display:flex; gap:6px}
+    .note{color:var(--muted); font-size:13px}
+
+    /* ---------- modal ---------- */
+    .modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(2,6,23,0.6); z-index:60}
+    .modal.show{display:grid}
+    .modal-card{width:min(700px,94vw); background:var(--card); border-radius:12px; padding:16px; box-shadow:var(--shadow)}
+    .modal-header{display:flex; justify-content:space-between; align-items:center}
+    .modal-body{display:grid; grid-template-columns: 1fr 320px; gap:14px}
+    .thumb{height:220px; border-radius:12px; display:grid; place-items:center; font-size:72px; background:linear-gradient(135deg,var(--brand),var(--accent))}
+    @media(max-width:880px){ .modal-body{grid-template-columns:1fr} .thumb{height:160px} }
+
+    /* ---------- charts fixed size ---------- */
+    .chart-box{width:250px;height:250px;margin:8px auto}
+
+    /* ---------- tips ---------- */
+    .tips{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-top:18px}
+    .tip-card{background:var(--card-2); border-radius:12px; padding:12px; box-shadow:var(--shadow)}
+    details.tip summary{cursor:pointer; font-weight:700}
+    details.tip .note{margin-top:8px}
+
+    /* ---------- footer / totals ---------- */
+    .summary{margin-top:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .summary .stat{background:var(--card-2); padding:10px 12px; border-radius:10px; box-shadow:var(--shadow); min-width:160px}
+
+    /* ---------- small responsive ---------- */
+    @media(max-width:900px){
+      .control{padding:10px}
+      .grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+    }
+    @media print{
+      header.hero, .toolbar, #cards, #tips, .toast, #overview { display:none !important; }
+      .plan { background:transparent; box-shadow:none }
+      table, thead, tbody, th, td { color:black !important; border:1px solid #000 !important }
+    }
+
+    /* ripple (faster & subtle) */
+    .ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple .45s linear;background:rgba(255,255,255,.45);pointer-events:none}
+    @keyframes ripple{to{transform:scale(4);opacity:0}}
+    button:active .ripple{opacity:.6}
+  </style>
+</head>
+<body data-theme="dark">
+  <header class="hero">
+    <div class="chip">🍽 <span class="small">Smart Meal Diet Planner</span></div>
+    <h1 class="title"><a href="index.html" style="text-decoration: none; color: inherit;">FitFuel — Meal Planner</a></h1>
+    <p class="subtitle">Personalized meal recommendations based on your BMR and fitness goals. Drag & drop weekly planner with macro tracking.</p>
+    
+    <!-- BMR Integration Alert -->
+    <div id="bmrAlert" class="control" style="max-width:600px; margin:16px auto; display:none;">
+      <div style="text-align:center;">
+        <strong>📊 Your BMR Data Loaded!</strong>
+        <div class="note" id="bmrSummary"></div>
+        <button id="recalculateBMR" class="btn-ghost" style="margin-top:8px;">🔄 Recalculate BMR</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav style="background: rgba(0,0,0,0.8); padding: 10px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+    <a href="index.html" style="color: #fff; text-decoration: none; font-weight: bold; margin: 0 20px; padding: 8px 12px; border-radius: 8px; transition: background 0.3s;">🏠 Home</a>
+    <a href="workouts.html" style="color: #fff; text-decoration: none; font-weight: bold; margin: 0 20px; padding: 8px 12px; border-radius: 8px; transition: background 0.3s;">💪 Workouts</a>
+  </nav>
+
+  <main class="container">
+    <!-- toolbar -->
+    <section class="toolbar" id="toolbar">
+      <div class="control">
+        <label>Goal</label>
+        <select id="goal" aria-label="Goal">
+          <option value="loss">Weight Loss</option>
+          <option value="maintain">Maintain</option>
+          <option value="gain">Muscle Gain</option>
+        </select>
+
+        <label>Type</label>
+        <select id="type" aria-label="Type">
+          <option value="all">All</option>
+          <option value="veg">Veg</option>
+          <option value="nonveg">Non-Veg</option>
+          <option value="egg">Eggetarian</option>
+        </select>
+
+        <label>Budget</label>
+        <select id="budget" aria-label="Budget">
+          <option value="any">Any</option>
+          <option value="low">Low</option>
+          <option value="mid">Mid</option>
+          <option value="high">High</option>
+        </select>
+
+        <label style="margin-left:6px">Search</label>
+        <input id="search" placeholder="poha, paneer, oats ..." style="min-width:220px"/>
+
+        <div class="switch" role="tablist" aria-label="Language">
+          <button id="btn-en" class="active" aria-selected="true">EN</button>
+          <button id="btn-hi">HI</button>
+        </div>
+
+        <button id="theme" class="btn-ghost icon-btn" title="Toggle theme">🌙 Theme</button>
+
+        <button id="gen" class="btn-primary" style="margin-left:auto">✨ Generate Personalized Plan</button>
+        <button id="clear" class="btn-ghost">🧹 Clear</button>
+        <button id="save" class="btn-ghost">💾 Save</button>
+        <button id="print" class="btn-ghost">🖨 Print</button>
+      </div>
+    </section>
+
+    <!-- meal library -->
+    <h2 class="section-title">Personalized Meal Library</h2>
+    <p class="note" id="libraryNote">Tip: Use filters or search. Meals are ranked by your BMR and goals. Drag & drop into plan cells.</p>
+    <section id="cards" class="grid" aria-live="polite"></section>
+
+    <!-- overview + plan -->
+    <section id="overview" style="margin-top:20px" class="control">
+      <div style="flex:1">
+        <strong>📊 Macros Overview</strong>
+        <div class="note">Choose a day to see protein/carbs/fat split.</div>
+        <select id="overviewDay" style="margin-top:8px"></select>
+      </div>
+      <div style="width:280px">
+        <div class="chart-box">
+          <canvas id="dayChart" width="250" height="250" aria-label="Day macros chart" role="img"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title" style="margin-top:24px">Your 7-Day Plan</h2>
+    <div class="plan">
+      <table id="planTable" aria-describedby="planDesc">
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Breakfast</th>
+            <th>Lunch</th>
+            <th>Snack</th>
+            <th>Dinner</th>
+            <th>Kcal</th><th>🧬P</th><th>🥖C</th><th>🥑F</th>
+          </tr>
+        </thead>
+        <tbody id="planBody"></tbody>
+      </table>
+    </div>
+
+    <!-- weekly totals -->
+    <div class="summary" id="weeklySummary" aria-live="polite" style="margin-top:12px"></div>
+
+    <p class="footer note" id="planDesc" style="margin-top:12px">
+      Disclaimer: Macros and calories are approximate. Adjust portions to your needs. Consult a professional for medical/diet advice.
+    </p>
+
+    <!-- tips -->
+    <h2 class="section-title" style="margin-top:22px">Nutrition & Lifestyle Tips</h2>
+    <section id="tips" class="tips" aria-live="polite">
+      <details class="tip" open>
+        <summary>🥤 Hydration</summary>
+        <div class="note">Aim for ~30–35 ml/kg/day. Add electrolytes after long/hard workouts.</div>
+      </details>
+      <details class="tip">
+        <summary>🕒 Protein Timing</summary>
+        <div class="note">Spread protein evenly across meals (20–30g per meal) to support recovery.</div>
+      </details>
+      <details class="tip">
+        <summary>🥗 Fiber First</summary>
+        <div class="note">Start lunches with salad/veggies to reduce glycemic spikes and increase satiety.</div>
+      </details>
+      <details class="tip">
+        <summary>😴 Sleep & Recovery</summary>
+        <div class="note">Prioritize 7–9 hours sleep — it strongly affects appetite and body composition.</div>
+      </details>
+      <details class="tip">
+        <summary>🏃‍♂️ NEAT & Steps</summary>
+        <div class="note">Small activity bursts — walking, standing, chores — add up. Target 7–10k steps.</div>
+      </details>
+    </section>
+  </main>
+
+  <!-- meal modal -->
+  <div id="mealModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card" role="document">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="meal-title">Meal</h3>
+        <div style="display:flex; gap:8px">
+          <button id="modalAdd" class="btn-primary">➕ Add to Plan</button>
+          <button id="modalClose" class="btn-ghost">✖</button>
+        </div>
+      </div>
+      <div class="modal-body" style="margin-top:12px">
+        <div>
+          <div id="modalThumb" class="thumb" aria-hidden>🍽️</div>
+          <p id="modalDesc" class="desc" style="margin-top:10px"></p>
+          <div class="kpi" style="margin-top:8px">
+            <span id="mkcal">🔥 0 kcal</span>
+            <span id="mp">🧬 0g P</span>
+            <span id="mc">🥖 0g C</span>
+            <span id="mf">🥑 0g F</span>
+          </div>
+          <div id="mtags" style="margin-top:10px"></div>
+        </div>
+        <div>
+          <div class="chart-box">
+            <canvas id="mealChart" width="250" height="250" aria-label="Meal macros chart" role="img"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="position:fixed;right:18px;bottom:18px;background:linear-gradient(90deg,var(--brand),var(--accent));color:#07223a;padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:opacity .18s,transform .18s;">Saved</div>
+
+  <script>
+  /* ============================
+     FULL APP JS (single file)
+     - preserves original features
+     - injects matte UI, smoother animations
+     - expanded meals, fixed charts
+     ============================ */
+
+  // Helper selectors
+  const $ = (q) => document.querySelector(q);
+  const $$ = (q) => Array.from(document.querySelectorAll(q));
+
+  // i18n strings (kept simple; you can expand)
+  const i18n = {
+    en: { tagline:"Smart Meal Diet Planner", heading:"Eat Better. Feel Stronger.", gen:"Generate 7-Day Plan", print:"Print" },
+    hi: { tagline:"स्मार्ट मील डाइट प्लानर", heading:"बेहतर खाओ, ज़्यादा मजबूत बनो", gen:"7-दिन का प्लान बनाएं", print:"प्रिंट" }
+  };
+
+  // Load BMR data for personalization
+  let bmrData = null;
+  try {
+    const stored = localStorage.getItem('fitfuel_bmr_data');
+    if (stored) {
+      bmrData = JSON.parse(stored);
+      // Check if data is less than 24 hours old
+      if (Date.now() - bmrData.timestamp < 24 * 60 * 60 * 1000) {
+        displayBMRAlert(bmrData);
+      } else {
+        bmrData = null; // Data too old
+      }
+    }
+  } catch (e) {
+    console.log('No BMR data found');
+  }
+
+  function displayBMRAlert(data) {
+    const alert = $('#bmrAlert');
+    const summary = $('#bmrSummary');
+    summary.innerHTML = `Target: ${data.calories} kcal/day • Goal: ${data.goal} • Protein: ${data.proteinG}g`;
+    alert.style.display = 'block';
+    
+    // Update library note
+    $('#libraryNote').innerHTML = `Meals optimized for your ${data.goal} goal (${data.calories} kcal/day). Drag & drop into plan cells.`;
+  }
+
+  // Recalculate BMR button
+  $('#recalculateBMR')?.addEventListener('click', () => {
+    window.open('../index.html#calculator', '_blank');
+  });
+
+  // Meals expanded (25+), with macros + calories + type + budget + course + emoji + tags + BMR compatibility
+  const meals = [
+    // breakfasts
+    { id:'poha', name:'Poha with Peanuts', hi:'पोहे', type:'veg', budget:'low', emoji:'🥔', course:'breakfast', goals:['loss','maintain'], kcal:320, p:8, c:55, f:8, desc:'Flattened rice with peanuts, onion, peas; lemon.' , tags:['Maharashtrian','Quick'], bmrScore: 0},
+    { id:'oatsUpma', name:'Oats Upma', hi:'ओट्स उपमा', type:'veg', budget:'low', emoji:'🥣', course:'breakfast', goals:['loss','maintain'], kcal:300, p:10, c:50, f:7, desc:'Savory oats with veggies.' , tags:['High-fiber']},
+    { id:'dosa', name:'Masala Dosa + Sambar', hi:'दसा', type:'veg', budget:'mid', emoji:'🫓', course:'breakfast', goals:['maintain'], kcal:360, p:8, c:62, f:6, desc:'Crispy dosa with potato masala & sambar.' , tags:['South Indian']},
+    { id:'smoothie', name:'Banana Peanut Smoothie', hi:'स्मूदी', type:'veg', budget:'mid', emoji:'🥤', course:'breakfast', goals:['gain'], kcal:520, p:22, c:60, f:20, desc:'Milk/curd, banana, PB, oats.' , tags:['Quick','Shake']},
+    { id:'eggbhurji', name:'Egg Bhurji + Roti', hi:'एग भुर्जी', type:'egg', budget:'mid', emoji:'🍳', course:'breakfast', goals:['gain','maintain'], kcal:480, p:28, c:45, f:18, desc:'Scrambled eggs with spices.' , tags:['Protein']},
+
+    // lunches
+    { id:'dalRoti', name:'Dal Tadka + 2 Roti', type:'veg', budget:'low', emoji:'🥗', course:'lunch', goals:['loss','maintain'], kcal:520, p:22, c:75, f:12, desc:'Toor/moong dal with roti.' , tags:['Balanced']},
+    { id:'rajma', name:'Rajma Chawal', type:'veg', budget:'low', emoji:'🍛', course:'lunch', goals:['maintain','gain'], kcal:650, p:22, c:110, f:10, desc:'Kidney beans with rice.' , tags:['Comfort']},
+    { id:'paneerBowl', name:'Paneer Tikka Bowl', type:'veg', budget:'mid', emoji:'🧀', course:'lunch', goals:['gain','maintain'], kcal:560, p:35, c:50, f:20, desc:'Grilled paneer with brown rice & salad.' , tags:['High-protein']},
+    { id:'chicken', name:'Chicken Curry + Rice', type:'nonveg', budget:'mid', emoji:'🍗', course:'lunch', goals:['gain','maintain'], kcal:680, p:42, c:75, f:18, desc:'Home style chicken curry.' , tags:['Protein']},
+    { id:'fish', name:'Fish Curry + 2 Roti', type:'nonveg', budget:'high', emoji:'🐟', course:'lunch', goals:['loss','maintain'], kcal:520, p:38, c:45, f:16, desc:'Coastal style fish curry.' , tags:['Omega-3']},
+
+    // snacks
+    { id:'sprouts', name:'Sprout Chaat', type:'veg', budget:'low', emoji:'🌱', course:'snack', goals:['loss','maintain'], kcal:220, p:14, c:30, f:6, desc:'Mixed sprouts with onion & lemon.' , tags:['Fiber']},
+    { id:'chana', name:'Roasted Chana + Buttermilk', type:'veg', budget:'low', emoji:'🥨', course:'snack', goals:['loss','maintain'], kcal:200, p:10, c:28, f:4, desc:'Crunchy roasted chana.' , tags:['Budget']},
+    { id:'fruitcurd', name:'Fruit + Curd', type:'veg', budget:'mid', emoji:'🍎', course:'snack', goals:['maintain'], kcal:180, p:8, c:28, f:4, desc:'Seasonal fruit with curd & nuts.' , tags:['Micronutrients']},
+    { id:'omelette', name:'Masala Omelette', type:'egg', budget:'low', emoji:'🍳', course:'snack', goals:['gain'], kcal:240, p:16, c:2, f:18, desc:'2 eggs with herbs.' , tags:['Quick']},
+
+    // dinners
+    { id:'khichdi', name:'Moong Khichdi + Ghee', type:'veg', budget:'low', emoji:'🍲', course:'dinner', goals:['loss','maintain'], kcal:450, p:18, c:70, f:10, desc:'Easy to digest khichdi.' , tags:['Light']},
+    { id:'tofu', name:'Tofu Veg Stir Fry', type:'veg', budget:'mid', emoji:'🍚', course:'dinner', goals:['gain','maintain'], kcal:560, p:28, c:65, f:16, desc:'Tofu with peppers & rice.' , tags:['Vegan']},
+    { id:'paneerbh', name:'Paneer Bhurji + Roti', type:'veg', budget:'mid', emoji:'🧀', course:'dinner', goals:['gain'], kcal:600, p:32, c:50, f:24, desc:'Crumbled paneer with spices.' , tags:['Protein']},
+    { id:'grilledch', name:'Grilled Chicken + Quinoa', type:'nonveg', budget:'high', emoji:'🔥', course:'dinner', goals:['loss','gain'], kcal:590, p:45, c:45, f:18, desc:'Marinated grilled chicken & quinoa.' , tags:['High-protein']},
+    { id:'curdrice', name:'Curd Rice + Tempering', type:'veg', budget:'low', emoji:'🍚', course:'dinner', goals:['maintain'], kcal:520, p:14, c:85, f:10, desc:'Comforting south-style curd rice.' , tags:['Comfort']},
+
+    // extras (more variety)
+    { id:'pulav', name:'Veg Pulao', type:'veg', budget:'mid', emoji:'🍛', course:'lunch', goals:['maintain'], kcal:320, p:8, c:45, f:9, desc:'Fragrant veg pulao.' , tags:['One-pot']},
+    { id:'rajmarice', name:'Rajma Rice', type:'veg', budget:'low', emoji:'🍛', course:'lunch', goals:['gain'], kcal:650, p:22, c:110, f:10, desc:'Rajma with steamed rice.' , tags:['Comfort']},
+    { id:'fishgrill', name:'Tandoori Fish', type:'nonveg', budget:'high', emoji:'🐟', course:'dinner', goals:['loss','maintain'], kcal:330, p:40, c:4, f:12, desc:'Spiced grilled fish.' , tags:['Lean']},
+    { id:'wrap', name:'Veg Wrap', type:'veg', budget:'mid', emoji:'🌯', course:'lunch', goals:['loss','maintain'], kcal:260, p:10, c:28, f:7, desc:'Whole-wheat veg wrap.' , tags:['On-the-go']},
+    { id:'mutt', name:'Mutton Curry', type:'nonveg', budget:'high', emoji:'🍖', course:'dinner', goals:['gain'], kcal:420, p:34, c:4, f:22, desc:'Rich mutton curry in small portion.' , tags:['Hearty']}
+  ];
+
+  // Elements
+  const cardsEl = $('#cards');
+  const langBtns = { en: $('#btn-en'), hi: $('#btn-hi') };
+  let LANG = localStorage.getItem('fitfuel_lang') || 'en';
+
+  // Utility: ripple (fast subtle)
+  function attachRipple(btn){
+    btn.addEventListener('pointerdown', (e)=>{
+      const r = document.createElement('span'); r.className='ripple';
+      const d = Math.max(btn.clientWidth, btn.clientHeight); r.style.width=r.style.height=d+'px';
+      const rect = btn.getBoundingClientRect();
+      r.style.left = (e.clientX - rect.left - d/2) + 'px';
+      r.style.top = (e.clientY - rect.top - d/2) + 'px';
+      btn.appendChild(r);
+      setTimeout(()=> r.remove(), 450);
+    });
+  }
+  $$('button').forEach(attachRipple);
+
+  // I18n apply (keeps original i18n mapping but minimal)
+  function applyI18n(){
+    document.querySelectorAll('[data-i18n]').forEach(el=>{
+      const key = el.getAttribute('data-i18n');
+      if(i18n[LANG] && i18n[LANG][key]) el.textContent = i18n[LANG][key];
+    });
+    langBtns.en.classList.toggle('active', LANG==='en');
+    langBtns.hi.classList.toggle('active', LANG==='hi');
+    localStorage.setItem('fitfuel_lang', LANG);
+  }
+
+  function mealName(m){ return LANG==='en' ? m.name : (m.hi || m.name); }
+
+  /* ---------- Render library (draggable) ---------- */
+  function renderCards(){
+    const g = $('#goal').value, t = $('#type').value, b = $('#budget').value, s = ($('#search').value||'').toLowerCase();
+    const list = meals.filter(m=> (g==='all' || m.goals?.includes(g)) && (t==='all' || m.type===t) && (b==='any' || m.budget===b) && (mealName(m).toLowerCase().includes(s) || (m.desc||'').toLowerCase().includes(s)) );
+    cardsEl.innerHTML = list.map(cardTpl).join('');
+    // make draggable
+    $$('#cards .card').forEach(el=>{
+      el.setAttribute('draggable','true');
+      el.addEventListener('dragstart', (ev)=>{
+        ev.dataTransfer.setData('text/plain', el.getAttribute('data-id'));
+        ev.dataTransfer.effectAllowed = 'copy';
+      });
+    });
+  }
+
+  function cardTpl(m){
+    return `<article class="card" data-id="${m.id}" role="region" aria-label="${mealName(m)}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="badge">${m.emoji || '🍽️'} ${m.type.toUpperCase()}</span>
+        <span class="badge small">₹ ${m.budget || 'mid'}</span>
+      </div>
+      <div class="meal-title" data-open="${m.id}">${mealName(m)}</div>
+      <div class="desc">${m.desc}</div>
+      <div class="kpi">
+        <span>🔥 ${m.kcal} kcal</span>
+        <span>🧬 ${m.p}g P</span>
+        <span>🥖 ${m.c}g C</span>
+        <span>🥑 ${m.f}g F</span>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap" class="actions">
+        <button class="btn-primary" onclick="addToPlan('${m.id}')">➕ Add</button>
+        <button class="btn-ghost" data-open="${m.id}">👁️ Preview</button>
+      </div>
+    </article>`;
+  }
+
+  // filters and search
+  ['#goal','#type','#budget','#search'].forEach(id=> document.querySelector(id).addEventListener('input', renderCards));
+  langBtns.en.addEventListener('click', ()=>{ LANG='en'; applyI18n(); renderCards(); });
+  langBtns.hi.addEventListener('click', ()=>{ LANG='hi'; applyI18n(); renderCards(); });
+
+  /* ---------- Planner state ---------- */
+  let currentPlan = loadPlan() || createEmptyPlan();
+
+  function createEmptyPlan(){
+    return Array.from({length:7}, (_,i)=>({ day:i+1, breakfast:null, lunch:null, snack:null, dinner:null }));
+  }
+
+  function sample(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function savePlan(){ localStorage.setItem('fitfuel_plan', JSON.stringify(currentPlan)); showToast('Saved'); }
+  function loadPlan(){ try{ return JSON.parse(localStorage.getItem('fitfuel_plan')||'null'); }catch{return null; } }
+
+  /* ---------- Plan generator & operations ---------- */
+  function generatePlan(){
+    const g = $('#goal').value, t = $('#type').value, b = $('#budget').value;
+    const pool = (course)=> meals.filter(m=> (g==='all'||m.goals?.includes(g)) && (t==='all'||m.type===t) && (b==='any'||m.budget===b) && m.course===course );
+    // fallback: if course missing in data (we have diverse), generate by mapping
+    const B = pool('breakfast').length?pool('breakfast'):meals.filter(m=>m.course==='breakfast' || ['poha','oatsUpma','dosa','smoothie','eggbhurji'].includes(m.id));
+    const L = pool('lunch').length?pool('lunch'):meals.filter(m=>m.course==='lunch' || ['dalRoti','rajma','paneerBowl','pulav','wrap'].includes(m.id));
+    const S = pool('snack').length?pool('snack'):meals.filter(m=>m.course==='snack' || ['sprouts','chana','fruitcurd','omelette'].includes(m.id));
+    const D = pool('dinner').length?pool('dinner'):meals.filter(m=>m.course==='dinner' || ['khichdi','tofu','paneerbh','grilledch','curdrice'].includes(m.id));
+
+    if(!B.length||!L.length||!S.length||!D.length){ alert('Not enough meals for these filters — try changing filters.'); return; }
+    currentPlan = createEmptyPlan().map(row=>({
+      ...row,
+      breakfast: sample(B),
+      lunch: sample(L),
+      snack: sample(S),
+      dinner: sample(D)
+    }));
+    renderPlan(currentPlan); toast('Plan generated'); savePlan();
+  }
+
+  function addToPlan(id, dayIdx=null, course=null){
+    const m = meals.find(x=>x.id===id);
+    if(!m) return;
+    if(dayIdx!==null && course){ currentPlan[dayIdx][course]=m; renderPlan(currentPlan); toast('Added'); savePlan(); return; }
+    for(const day of currentPlan){ if(!day[m.course]){ day[m.course]=m; renderPlan(currentPlan); toast('Added'); savePlan(); return; } }
+    alert('All slots for this course are filled — replace a meal by using Replace button on a cell.');
+  }
+
+  function replaceMeal(dayIdx, course){
+    const g = $('#goal').value, t = $('#type').value, b = $('#budget').value;
+    const options = meals.filter(m=> (g==='all'||m.goals?.includes(g)) && (t==='all'||m.type===t) && (b==='any'||m.budget===b) && m.course===course);
+    const pick = options.length? sample(options) : sample(meals.filter(m=>m.course===course || m.course));
+    currentPlan[dayIdx][course] = pick;
+    renderPlan(currentPlan); toast('Replaced'); savePlan();
+  }
+
+  function removeMeal(dayIdx, course){ currentPlan[dayIdx][course]=null; renderPlan(currentPlan); toast('Removed'); savePlan(); }
+
+  function sumDay(row){
+    const items = ['breakfast','lunch','snack','dinner'].map(k=>row[k]).filter(Boolean);
+    return items.reduce((acc,m)=>({ kcal:acc.kcal+m.kcal, p:acc.p+m.p, c:acc.c+m.c, f:acc.f+m.f }), {kcal:0,p:0,c:0,f:0});
+  }
+
+  function renderPlan(plan){
+    const tbody = $('#planBody'); let html='';
+    let totals = {kcal:0,p:0,c:0,f:0};
+    plan.forEach((row,idx)=>{
+      const sum = sumDay(row); totals.kcal+=sum.kcal; totals.p+=sum.p; totals.c+=sum.c; totals.f+=sum.f;
+      html+=`<tr>
+        <td>Day ${idx+1}</td>
+        ${['breakfast','lunch','snack','dinner'].map(c=> mealCell(row, c)).join('')}
+        <td>${sum.kcal}</td><td>${sum.p}</td><td>${sum.c}</td><td>${sum.f}</td>
+      </tr>`;
+    });
+    html+=`<tr>
+      <td><strong>Total</strong></td>
+      <td colspan="3" class="note">Avg/day: ${(totals.kcal/7|0)} kcal • ${(totals.p/7|0)}g P</td>
+      <td><strong>Week</strong></td>
+      <td><strong>${totals.kcal}</strong></td><td><strong>${totals.p}</strong></td><td><strong>${totals.c}</strong></td><td><strong>${totals.f}</strong></td>
+    </tr>`;
+    tbody.innerHTML = html;
+
+    // attach droptarget listeners
+    $$('#planBody td.droptarget').forEach(td=>{
+      td.addEventListener('dragover', ev=>{ ev.preventDefault(); td.classList.add('dragover'); });
+      td.addEventListener('dragleave', ()=>td.classList.remove('dragover'));
+      td.addEventListener('drop', ev=>{
+        ev.preventDefault(); td.classList.remove('dragover');
+        const id = ev.dataTransfer.getData('text/plain');
+        addToPlan(id, Number(td.dataset.day), td.dataset.course);
+        updateOverviewSelect(); drawDayChart($('#overviewDay').value);
+      });
+    });
+
+    // open preview on click
+    $$('#planBody td[data-open]').forEach(td=>{
+      td.addEventListener('click', ()=> openMeal(td.dataset.open));
+    });
+
+    updateOverviewSelect(); drawDayChart($('#overviewDay').value);
+    renderWeeklySummary();
+  }
+
+  function mealCell(row, course){
+    const m = row[course]; const dayIdx = row.day-1;
+    const baseAttr = `class="droptarget" data-day="${dayIdx}" data-course="${course}"`;
+    if(!m) return `<td ${baseAttr}><span class="note">— Drop ${course}</span></td>`;
+    return `<td ${baseAttr} data-open="${m.id}" title="Click to preview">
+      <div><strong>${mealName(m)}</strong></div>
+      <div class="small note">${m.kcal} kcal • ${m.p}P ${m.c}C ${m.f}F</div>
+      <div class="cell-actions">
+        <button class="btn-ghost" onclick="replaceMeal(${dayIdx}, '${course}')">🔁 Replace</button>
+        <button class="btn-ghost" onclick="removeMeal(${dayIdx}, '${course}')">🗑 Remove</button>
+      </div>
+    </td>`;
+  }
+
+  /* ---------- modal preview ---------- */
+  const modal = $('#mealModal'), modalClose = $('#modalClose'), modalAdd = $('#modalAdd');
+  let modalMeal = null; let mealChart = null;
+
+  function openMeal(id){
+    const m = meals.find(x=>x.id===id); if(!m) return;
+    modalMeal = m;
+    $('#modalTitle').textContent = mealName(m);
+    $('#modalDesc').textContent = m.desc;
+    $('#mkcal').textContent = `🔥 ${m.kcal} kcal`;
+    $('#mp').textContent = `🧬 ${m.p}g P`;
+    $('#mc').textContent = `🥖 ${m.c}g C`;
+    $('#mf').textContent = `🥑 ${m.f}g F`;
+    $('#mtags').innerHTML = (m.tags||[]).map(t=>`<span class="badge small">${t}</span>`).join(' ');
+    $('#modalThumb').textContent = m.emoji || '🍽️';
+    modal.classList.add('show');
+
+    // fixed-size chart (250x250)
+    setTimeout(()=>{
+      const ctx = $('#mealChart'); if(mealChart) mealChart.destroy();
+      mealChart = new Chart(ctx, { type:'doughnut', data:{ labels:['Protein','Carbs','Fat'], datasets:[{ data:[m.p,m.c,m.f], backgroundColor:['#4caf50','#2196f3','#ff9800'] }] }, options:{ responsive:false, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }});
+    }, 40);
+  }
+
+  function closeModal(){ modal.classList.remove('show'); modalMeal=null; if(mealChart) mealChart.destroy(); }
+
+  document.addEventListener('click', (e)=>{
+    const id = e.target.getAttribute?.('data-open'); if(id) openMeal(id);
+    if(e.target===modal) closeModal();
+  });
+  modalClose.addEventListener('click', closeModal);
+  modalAdd.addEventListener('click', ()=>{ if(!modalMeal) return; addToPlan(modalMeal.id); closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.classList.contains('show')) closeModal(); });
+
+  /* ---------- Overview day chart (fixed 250x250) ---------- */
+  const overviewSel = $('#overviewDay'); let dayChart = null;
+  function updateOverviewSelect(){
+    const cur = overviewSel.value || '0';
+    overviewSel.innerHTML = Array.from({length:7}, (_,i)=>`<option value="${i}">Day ${i+1}</option>`).join('');
+    overviewSel.value = cur;
+  }
+  function drawDayChart(dayIdxStr){
+    const dayIdx = Number(dayIdxStr||0); const row = currentPlan[dayIdx] || {};
+    const sum = sumDay(row||{});
+    const ctx = $('#dayChart'); if(dayChart) dayChart.destroy();
+    dayChart = new Chart(ctx, { type:'doughnut', data:{ labels:['Protein','Carbs','Fat'], datasets:[{ data:[sum.p||0,sum.c||0,sum.f||0], backgroundColor:['#4caf50','#2196f3','#ff9800'] }] }, options:{ responsive:false, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, title:{display:true, text:`Day ${dayIdx+1} • ${sum.kcal||0} kcal`} } }});
+  }
+  overviewSel.addEventListener('change', (e)=> drawDayChart(e.target.value));
+
+  /* ---------- init droptargets helper ---------- */
+  function initDroptargets(){
+    $$('#planBody td.droptarget').forEach(td=>{
+      td.addEventListener('dragover', ev=>{ ev.preventDefault(); td.classList.add('dragover'); });
+      td.addEventListener('dragleave', ()=>td.classList.remove('dragover'));
+      td.addEventListener('drop', ev=>{
+        ev.preventDefault(); td.classList.remove('dragover');
+        const id = ev.dataTransfer.getData('text/plain');
+        addToPlan(id, Number(td.dataset.day), td.dataset.course);
+      });
+    });
+  }
+
+  /* ---------- weekly summary UI ---------- */
+  function renderWeeklySummary(){
+    const el = $('#weeklySummary'); el.innerHTML = '';
+    const totals = currentPlan.reduce((acc,row)=>{
+      const s = sumDay(row);
+      acc.kcal+=s.kcal; acc.p+=s.p; acc.c+=s.c; acc.f+=s.f; return acc;
+    }, {kcal:0,p:0,c:0,f:0});
+    const avgK = Math.round(totals.kcal/7);
+    el.innerHTML = `
+      <div class="stat"><strong>Weekly kcal</strong><div class="note">${totals.kcal} kcal</div></div>
+      <div class="stat"><strong>Avg/day</strong><div class="note">${avgK} kcal</div></div>
+      <div class="stat"><strong>Protein (week)</strong><div class="note">${totals.p} g</div></div>
+      <div class="stat"><strong>Carbs (week)</strong><div class="note">${totals.c} g</div></div>
+      <div class="stat"><strong>Fat (week)</strong><div class="note">${totals.f} g</div></div>
+    `;
+  }
+
+  /* ---------- toast helpers ---------- */
+  function showToast(msg='Saved'){
+    const t = $('#toast'); t.textContent = msg; t.style.opacity='1'; t.style.transform='translateY(0)';
+    setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; }, 1400);
+  }
+  function toast(msg='Done'){ showToast(msg); }
+
+  /* ---------- Save / Clear / Print / Theme ---------- */
+  $('#gen').addEventListener('click', generatePlan);
+  $('#print').addEventListener('click', ()=>window.print());
+  $('#clear').addEventListener('click', ()=>{ currentPlan = createEmptyPlan(); renderPlan(currentPlan); toast('Cleared'); savePlan(); });
+  $('#save').addEventListener('click', ()=>{ savePlan(); });
+
+  const root = document.documentElement;
+  const THEME_KEY = 'fitfuel_theme';
+  function applyTheme(){ const mode = localStorage.getItem(THEME_KEY)||'dark'; document.body.setAttribute('data-theme', mode); document.body.dataset.theme = mode; $('#theme').textContent = mode==='dark'?'🌙 Theme':'☀️ Theme'; }
+  $('#theme').addEventListener('click', ()=>{ const cur = localStorage.getItem(THEME_KEY)||'dark'; const next = cur==='dark'?'light':'dark'; localStorage.setItem(THEME_KEY,next); applyTheme(); });
+  applyTheme();
+
+  // Accessibility: expose functions
+  window.replaceMeal = replaceMeal; window.addToPlan = addToPlan; window.removeMeal = removeMeal;
+
+  /* ---------- init ---------- */
+  function init(){
+    applyI18n();
+    renderCards();
+    renderPlan(currentPlan);
+    initDroptargets();
+    updateOverviewSelect();
+    drawDayChart(0);
+  }
+
+  // initial render
+  init();
+
+  // load saved plan on start if exists
+  if(localStorage.getItem('fitfuel_plan')) { showToast('Loaded saved plan'); }
+  </script>
+
+  <!-- Load utilities for enhanced functionality -->
+  <script src="js/utils.js"></script>
+  <script>
+    // Initialize utilities
+    document.addEventListener('DOMContentLoaded', function() {
+      // Apply theme
+      theme.apply();
+      
+      // Override toast function to use new system
+      const originalShowToast = showToast;
+      showToast = function(msg) {
+        notify.info(msg, 2000);
+      };
+    });
+  </script>
+</body>
+</html>

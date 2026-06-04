@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutrition Database - FitFuel</title>
+    <link rel="icon" type="image/png" href="Fitfuel favicon.png" />
+    <style>
+        :root {
+            --brand: #ff6b35;
+            --brand-2: #ff884d;
+            --brand-3: #ffcc70;
+            --text: #222;
+            --text-inv: #fff;
+            --glass-light: rgba(255, 255, 255, 0.5);
+            --glass-dark: rgba(0, 0, 0, 0.45);
+            --card-radius: 16px;
+            --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-2: 0 12px 28px rgba(0, 0, 0, 0.22);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+            min-height: 100vh;
+            color: var(--text);
+            background: linear-gradient(-45deg, #ffecd2, #fcb69f, #ffdde1, #ee9ca7);
+            background-size: 400% 400%;
+            animation: gradientMove 16s ease infinite;
+        }
+
+        body.dark {
+            color: var(--text-inv);
+            background: linear-gradient(-45deg, #141e30, #243b55, #0f2027, #2c5364);
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Header */
+        header {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        body.dark header {
+            background: var(--glass-dark);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--brand);
+            text-decoration: none;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            margin: 0 0 1.5rem 0;
+        }
+
+        /* Search Bar */
+        .search-section {
+            margin-bottom: 2rem;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 1rem;
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 12px;
+            background: var(--glass-light);
+            font-size: 1rem;
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        body.dark .search-input {
+            background: var(--glass-dark);
+            color: var(--text-inv);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+        }
+
+        .search-btn {
+            padding: 1rem 2rem;
+            background: var(--brand);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover {
+            background: var(--brand-2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+
+        /* Filter Options */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1.25rem;
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--brand);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--brand);
+            color: white;
+            border-color: var(--brand);
+        }
+
+        /* Food Grid */
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Food Card */
+        .food-card {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        body.dark .food-card {
+            background: var(--glass-dark);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .food-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-2);
+        }
+
+        .food-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.3), rgba(255, 136, 77, 0.3));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            overflow: hidden;
+        }
+
+        .food-content {
+            padding: 1.5rem;
+        }
+
+        .food-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            color: var(--text);
+        }
+
+        .food-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .info-item {
+            background: rgba(255, 107, 53, 0.1);
+            padding: 0.5rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--brand);
+            font-size: 1.1rem;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--text);
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+
+        .food-category {
+            display: inline-block;
+            background: rgba(255, 107, 53, 0.2);
+            color: var(--brand);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Nutrition Facts */
+        .nutrition-facts {
+            background: rgba(255, 107, 53, 0.05);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .nutrition-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+        }
+
+        .nutrition-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn-add {
+            background: var(--brand);
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: var(--brand-2);
+        }
+
+        .btn-detail {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--brand);
+            border: 1px solid var(--brand);
+        }
+
+        .btn-detail:hover {
+            background: rgba(255, 107, 53, 0.2);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            border-radius: var(--card-radius);
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-2);
+        }
+
+        body.dark .modal-content {
+            background: var(--glass-dark);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: var(--brand);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text);
+            opacity: 0.6;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem auto;
+            }
+
+            .food-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input,
+            .search-btn {
+                width: 100%;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">🔥 FitFuel</a>
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+    </header>
+
+    <div class="container">
+        <h1>🥗 Nutrition Database</h1>
+        <p style="opacity: 0.8; margin: 0 0 2rem 0;">Explore nutritional information for thousands of foods</p>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for a food (e.g., chicken, apple, rice)...">
+                <button class="search-btn" id="searchBtn">Search</button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="vegetables">Vegetables</button>
+            <button class="filter-btn" data-filter="fruits">Fruits</button>
+            <button class="filter-btn" data-filter="proteins">Proteins</button>
+            <button class="filter-btn" data-filter="grains">Grains</button>
+            <button class="filter-btn" data-filter="dairy">Dairy</button>
+            <button class="filter-btn" data-filter="snacks">Snacks</button>
+        </div>
+
+        <!-- Food Grid -->
+        <div class="food-grid" id="foodGrid">
+            <!-- Foods will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalFoodName"></h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+
+            <div id="modalContent"></div>
+
+            <div class="button-group" style="margin-top: 2rem;">
+                <button class="btn-add" id="addToMealBtn">Add to Today's Meals</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample nutrition database
+        const nutritionDatabase = [
+            {
+                id: 1,
+                name: 'Grilled Chicken Breast',
+                emoji: '🍗',
+                category: 'proteins',
+                calories: 165,
+                protein: 31,
+                carbs: 0,
+                fat: 3.6,
+                fiber: 0,
+                unit: '100g',
+                description: 'Lean protein source, excellent for muscle building'
+            },
+            {
+                id: 2,
+                name: 'Brown Rice',
+                emoji: '🍚',
+                category: 'grains',
+                calories: 112,
+                protein: 2.6,
+                carbs: 24,
+                fat: 0.9,
+                fiber: 1.8,
+                unit: '100g',
+                description: 'Whole grain, good source of fiber and B vitamins'
+            },
+            {
+                id: 3,
+                name: 'Broccoli',
+                emoji: '🥦',
+                category: 'vegetables',
+                calories: 34,
+                protein: 2.8,
+                carbs: 7,
+                fat: 0.4,
+                fiber: 2.4,
+                unit: '100g',
+                description: 'Low calorie, high in vitamins and minerals'
+            },
+            {
+                id: 4,
+                name: 'Apple',
+                emoji: '🍎',
+                category: 'fruits',
+                calories: 52,
+                protein: 0.3,
+                carbs: 14,
+                fat: 0.2,
+                fiber: 2.4,
+                unit: 'medium (182g)',
+                description: 'Natural sugars, good source of fiber'
+            },
+            {
+                id: 5,
+                name: 'Salmon',
+                emoji: '🐟',
+                category: 'proteins',
+                calories: 280,
+                protein: 25,
+                carbs: 0,
+                fat: 20,
+                fiber: 0,
+                unit: '100g',
+                description: 'Rich in omega-3 fatty acids, great for heart health'
+            },
+            {
+                id: 6,
+                name: 'Greek Yogurt',
+                emoji: '🥛',
+                category: 'dairy',
+                calories: 59,
+                protein: 10,
+                carbs: 3.3,
+                fat: 0.4,
+                fiber: 0,
+                unit: '100g',
+                description: 'High protein, low calorie dairy product'
+            },
+            {
+                id: 7,
+                name: 'Banana',
+                emoji: '🍌',
+                category: 'fruits',
+                calories: 89,
+                protein: 1.1,
+                carbs: 23,
+                fat: 0.3,
+                fiber: 2.6,
+                unit: 'medium (118g)',
+                description: 'Good source of potassium and carbohydrates'
+            },
+            {
+                id: 8,
+                name: 'Spinach',
+                emoji: '🥬',
+                category: 'vegetables',
+                calories: 23,
+                protein: 2.9,
+                carbs: 3.6,
+                fat: 0.4,
+                fiber: 2.2,
+                unit: '100g',
+                description: 'Nutrient-dense leafy green, rich in iron'
+            },
+            {
+                id: 9,
+                name: 'Almonds',
+                emoji: '🌰',
+                category: 'snacks',
+                calories: 579,
+                protein: 21,
+                carbs: 22,
+                fat: 50,
+                fiber: 12.5,
+                unit: '100g',
+                description: 'Healthy fats, great for snacking'
+            },
+            {
+                id: 10,
+                name: 'Whole Wheat Bread',
+                emoji: '🥖',
+                category: 'grains',
+                calories: 247,
+                protein: 10,
+                carbs: 41,
+                fat: 1.5,
+                fiber: 7,
+                unit: 'slice (28g)',
+                description: 'Complex carbohydrates, good fiber content'
+            },
+            {
+                id: 11,
+                name: 'Eggs',
+                emoji: '🥚',
+                category: 'proteins',
+                calories: 155,
+                protein: 13,
+                carbs: 1.1,
+                fat: 11,
+                fiber: 0,
+                unit: 'large (50g)',
+                description: 'Complete protein, versatile cooking option'
+            },
+            {
+                id: 12,
+                name: 'Sweet Potato',
+                emoji: '🍠',
+                category: 'vegetables',
+                calories: 86,
+                protein: 1.6,
+                carbs: 20,
+                fat: 0.1,
+                fiber: 3,
+                unit: '100g',
+                description: 'Rich in vitamin A and potassium'
+            }
+        ];
+
+        let currentFilter = 'all';
+        let filteredFoods = [...nutritionDatabase];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadThemePreference();
+            setupEventListeners();
+            renderFoodGrid();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('searchBtn').addEventListener('click', performSearch);
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentFilter = e.target.getAttribute('data-filter');
+                    applyFilters();
+                });
+            });
+
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('detailModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('detailModal')) closeModal();
+            });
+        }
+
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredFoods = nutritionDatabase.filter(food =>
+                food.name.toLowerCase().includes(query)
+            );
+            renderFoodGrid();
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredFoods = nutritionDatabase.filter(food => {
+                const matchesFilter = currentFilter === 'all' || food.category === currentFilter;
+                const matchesSearch = food.name.toLowerCase().includes(query);
+                return matchesFilter && matchesSearch;
+            });
+            renderFoodGrid();
+        }
+
+        function renderFoodGrid() {
+            const grid = document.getElementById('foodGrid');
+            
+            if (filteredFoods.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1/-1;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <h3>No foods found</h3>
+                            <p>Try searching with different keywords</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filteredFoods.map(food => `
+                <div class="food-card">
+                    <div class="food-image">${food.emoji}</div>
+                    <div class="food-content">
+                        <h3 class="food-name">${food.name}</h3>
+                        <span class="food-category">${food.category}</span>
+                        
+                        <div class="food-info">
+                            <div class="info-item">
+                                <div class="info-value">${food.calories}</div>
+                                <div class="info-label">Calories</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${food.protein}g</div>
+                                <div class="info-label">Protein</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${food.carbs}g</div>
+                                <div class="info-label">Carbs</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${food.fat}g</div>
+                                <div class="info-label">Fat</div>
+                            </div>
+                        </div>
+
+                        <div class="nutrition-facts">
+                            <div class="nutrition-row">
+                                <span>Serving: ${food.unit}</span>
+                                <strong>${food.calories} cal</strong>
+                            </div>
+                            <div class="nutrition-row">
+                                <span>Fiber</span>
+                                <strong>${food.fiber}g</strong>
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="btn-add" onclick="addToMeal(${food.id})">Quick Add</button>
+                            <button class="btn-detail" onclick="showDetail(${food.id})">Details</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showDetail(foodId) {
+            const food = nutritionDatabase.find(f => f.id === foodId);
+            if (!food) return;
+
+            document.getElementById('modalFoodName').textContent = food.name;
+            document.getElementById('modalContent').innerHTML = `
+                <div style="text-align: center; font-size: 4rem; margin-bottom: 1rem;">${food.emoji}</div>
+                
+                <div style="background: rgba(255, 107, 53, 0.1); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--brand);">Nutritional Information (per ${food.unit})</h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: var(--brand);">${food.calories}</div>
+                            <div style="font-size: 0.85rem; color: var(--text); opacity: 0.7;">Calories</div>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: var(--brand);">${food.protein}g</div>
+                            <div style="font-size: 0.85rem; color: var(--text); opacity: 0.7;">Protein</div>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: var(--brand);">${food.carbs}g</div>
+                            <div style="font-size: 0.85rem; color: var(--text); opacity: 0.7;">Carbohydrates</div>
+                        </div>
+                        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: var(--brand);">${food.fat}g</div>
+                            <div style="font-size: 0.85rem; color: var(--text); opacity: 0.7;">Fat</div>
+                        </div>
+                    </div>
+
+                    <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--brand);">${food.fiber}g</div>
+                        <div style="font-size: 0.85rem; color: var(--text); opacity: 0.7;">Fiber</div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255, 107, 53, 0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p>${food.description}</p>
+                </div>
+
+                <h4 style="margin-top: 1rem; margin-bottom: 0.5rem;">Health Benefits:</h4>
+                <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Rich in essential nutrients</li>
+                    <li>Supports healthy digestion</li>
+                    <li>Aids in muscle recovery</li>
+                </ul>
+            `;
+
+            document.getElementById('addToMealBtn').onclick = () => addToMeal(foodId);
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function addToMeal(foodId) {
+            const food = nutritionDatabase.find(f => f.id === foodId);
+            if (!food) return;
+
+            // Create meal entry
+            const meal = {
+                id: Date.now(),
+                name: food.name,
+                calories: food.calories,
+                category: 'SNACK',
+                date: new Date().toISOString().split('T')[0],
+                description: `${food.unit} - ${food.description}`,
+                quantity: 1
+            };
+
+            // Save to localStorage
+            const meals = JSON.parse(localStorage.getItem('meals')) || [];
+            meals.push(meal);
+            localStorage.setItem('meals', JSON.stringify(meals));
+
+            closeModal();
+            alert(`${food.name} added to today's meals!`);
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        }
+
+        function loadThemePreference() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+    </script>
+</body>
+</html>

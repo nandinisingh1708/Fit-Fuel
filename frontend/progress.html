@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Progress - FitFuel</title>
+    <link rel="icon" type="image/png" href="Fitfuel favicon.png" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --brand: #ff6b35;
+            --brand-2: #ff884d;
+            --brand-3: #ffcc70;
+            --text: #222;
+            --text-inv: #fff;
+            --glass-light: rgba(255, 255, 255, 0.5);
+            --glass-dark: rgba(0, 0, 0, 0.45);
+            --card-radius: 16px;
+            --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-2: 0 12px 28px rgba(0, 0, 0, 0.22);
+            --success: #4caf50;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+            min-height: 100vh;
+            color: var(--text);
+            background: linear-gradient(-45deg, #ffecd2, #fcb69f, #ffdde1, #ee9ca7);
+            background-size: 400% 400%;
+            animation: gradientMove 16s ease infinite;
+        }
+
+        body.dark {
+            color: var(--text-inv);
+            background: linear-gradient(-45deg, #141e30, #243b55, #0f2027, #2c5364);
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Header */
+        header {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        body.dark header {
+            background: var(--glass-dark);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--brand);
+            text-decoration: none;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            margin: 0 0 1.5rem 0;
+            color: var(--text);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid rgba(255, 107, 53, 0.2);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--brand);
+        }
+
+        .tab-btn.active {
+            color: var(--brand);
+            border-bottom-color: var(--brand);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Card */
+        .card {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow-1);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        body.dark .card {
+            background: var(--glass-dark);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.25rem;
+            color: var(--brand);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: rgba(255, 107, 53, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border-left: 4px solid var(--brand);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--brand);
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.7;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: #f44336;
+        }
+
+        /* Milestone Timeline */
+        .milestone-timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .milestone-item {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .milestone-item::before {
+            content: '';
+            position: absolute;
+            left: 1rem;
+            top: 0;
+            bottom: -2rem;
+            width: 2px;
+            background: rgba(255, 107, 53, 0.3);
+        }
+
+        .milestone-item:last-child::before {
+            display: none;
+        }
+
+        .milestone-dot {
+            width: 2rem;
+            height: 2rem;
+            background: var(--brand);
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .milestone-content {
+            flex: 1;
+            padding: 1rem;
+            background: rgba(255, 107, 53, 0.05);
+            border-radius: 8px;
+        }
+
+        .milestone-title {
+            font-weight: 600;
+            color: var(--brand);
+            margin-bottom: 0.25rem;
+        }
+
+        .milestone-date {
+            font-size: 0.85rem;
+            color: var(--text);
+            opacity: 0.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .milestone-description {
+            color: var(--text);
+            opacity: 0.8;
+        }
+
+        /* Progress Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(255, 107, 53, 0.1);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--brand);
+            border-bottom: 2px solid rgba(255, 107, 53, 0.2);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+            color: var(--text);
+        }
+
+        tr:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        /* Goal Progress */
+        .goal-card {
+            background: rgba(255, 107, 53, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .goal-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand), var(--brand-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: width 0.5s ease;
+        }
+
+        .goal-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.7;
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+        }
+
+        .filter-group select {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        body.dark .filter-group select {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-inv);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem auto;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            .tabs {
+                gap: 0;
+                margin-bottom: 1.5rem;
+            }
+
+            .tab-btn {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .milestone-item {
+                gap: 1rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">🔥 FitFuel</a>
+        <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle">🌙</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>📈 Your Progress</h1>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="overview">Overview</button>
+            <button class="tab-btn" data-tab="weight">Weight Tracking</button>
+            <button class="tab-btn" data-tab="calories">Calorie Trends</button>
+            <button class="tab-btn" data-tab="milestones">Milestones</button>
+            <button class="tab-btn" data-tab="goals">Goals</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Days Active</div>
+                    <div class="stat-value" id="daysActive">0</div>
+                    <div class="stat-change positive">📈 Great consistency</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Meals Logged</div>
+                    <div class="stat-value" id="totalMeals">0</div>
+                    <div class="stat-change positive">✓ Perfect tracking</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Avg Daily Calories</div>
+                    <div class="stat-value" id="avgDaily">0</div>
+                    <div class="stat-change">cal/day</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Goals Achieved</div>
+                    <div class="stat-value" id="goalsAchieved">0</div>
+                    <div class="stat-change positive">⭐ Keep going!</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔥 Weekly Calorie Trend</h2>
+                <div class="chart-container">
+                    <canvas id="weeklyCaloireChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Meal Category Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="mealCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weight Tracking Tab -->
+        <div id="weight" class="tab-content">
+            <div class="card">
+                <h2>⚖️ Weight Progress</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="weightPeriod">Time Period:</label>
+                        <select id="weightPeriod">
+                            <option value="month">Last Month</option>
+                            <option value="3months">Last 3 Months</option>
+                            <option value="6months">Last 6 Months</option>
+                            <option value="year">Last Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Current Weight</div>
+                    <div class="stat-value" id="currentWeight">0</div>
+                    <div class="stat-change">kg</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Weight Change</div>
+                    <div class="stat-value" id="weightChange">0</div>
+                    <div class="stat-change" id="weightChangeIndicator">0 kg</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Goal Weight</div>
+                    <div class="stat-value" id="goalWeight">0</div>
+                    <div class="stat-change">kg</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Progress</div>
+                    <div class="stat-value" id="weightProgress">0</div>
+                    <div class="stat-change">%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calorie Trends Tab -->
+        <div id="calories" class="tab-content">
+            <div class="card">
+                <h2>📉 Calorie Consumption Trend</h2>
+                <div class="chart-container">
+                    <canvas id="caloriesTrendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📋 Monthly Calorie Summary</h2>
+                <div class="table-container">
+                    <table id="calorieTable">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Avg Daily Intake</th>
+                                <th>Total Meals</th>
+                                <th>Highest Day</th>
+                                <th>Lowest Day</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>January 2026</td>
+                                <td>2,150 cal</td>
+                                <td>87 meals</td>
+                                <td>2,850 cal</td>
+                                <td>1,200 cal</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Milestones Tab -->
+        <div id="milestones" class="tab-content">
+            <div class="card">
+                <h2>🏆 Your Milestones</h2>
+                <div class="milestone-timeline" id="milestonesContainer">
+                    <div class="milestone-item">
+                        <div class="milestone-dot">🎉</div>
+                        <div class="milestone-content">
+                            <div class="milestone-title">Account Created</div>
+                            <div class="milestone-date">January 1, 2026</div>
+                            <div class="milestone-description">Started your fitness journey with FitFuel</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals Tab -->
+        <div id="goals" class="tab-content">
+            <div class="card">
+                <h2>🎯 Your Goals</h2>
+                <div id="goalsContainer">
+                    <div class="goal-card">
+                        <div class="goal-title">📉 Weight Loss Goal</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="weightLossProgress" style="width: 45%;">
+                                <span>45%</span>
+                            </div>
+                        </div>
+                        <div class="goal-info">
+                            <span>Current: 75 kg</span>
+                            <span>Target: 70 kg</span>
+                        </div>
+                    </div>
+
+                    <div class="goal-card">
+                        <div class="goal-title">🔥 Daily Calorie Goal</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="calorieGoalProgress" style="width: 72%;">
+                                <span>72%</span>
+                            </div>
+                        </div>
+                        <div class="goal-info">
+                            <span>Consumed: 1,760 cal</span>
+                            <span>Goal: 2,450 cal</span>
+                        </div>
+                    </div>
+
+                    <div class="goal-card">
+                        <div class="goal-title">💪 Consistency Goal</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="consistencyProgress" style="width: 85%;">
+                                <span>85%</span>
+                            </div>
+                        </div>
+                        <div class="goal-info">
+                            <span>Days Logged: 17/20</span>
+                            <span>Target: 20 days</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            loadProgressData();
+            initializeCharts();
+            setupEventListeners();
+            loadThemePreference();
+        });
+
+        function setupTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.getAttribute('data-tab');
+                    
+                    // Remove active class from all
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    btn.classList.add('active');
+                    document.getElementById(tabName).classList.add('active');
+                    
+                    // Refresh charts if needed
+                    setTimeout(() => {
+                        Object.values(charts).forEach(chart => {
+                            if (chart) chart.resize();
+                        });
+                    }, 100);
+                });
+            });
+        }
+
+        function loadProgressData() {
+            const meals = JSON.parse(localStorage.getItem('meals')) || [];
+            const user = JSON.parse(localStorage.getItem('currentUser')) || {};
+
+            // Calculate stats
+            const uniqueDates = new Set(meals.map(m => m.date));
+            document.getElementById('daysActive').textContent = uniqueDates.size;
+            document.getElementById('totalMeals').textContent = meals.length;
+            document.getElementById('avgDaily').textContent = meals.length > 0 ? Math.round(meals.reduce((s, m) => s + (m.calories || 0), 0) / uniqueDates.size) : 0;
+            document.getElementById('goalsAchieved').textContent = '3';
+
+            // Weight stats
+            document.getElementById('currentWeight').textContent = (user.weight || 75).toFixed(1);
+            document.getElementById('goalWeight').textContent = '70';
+            document.getElementById('weightChange').textContent = '-2.5';
+            document.getElementById('weightProgress').textContent = '50';
+        }
+
+        function initializeCharts() {
+            // Weekly Calorie Chart
+            const weeklyCaloireCtx = document.getElementById('weeklyCaloireChart').getContext('2d');
+            charts.weeklyCalorie = new Chart(weeklyCaloireCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Calories Consumed',
+                        data: [2100, 2300, 2050, 2450, 2200, 2600, 2400],
+                        backgroundColor: 'rgba(255, 107, 53, 0.6)',
+                        borderColor: 'rgba(255, 107, 53, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 3000
+                        }
+                    }
+                }
+            });
+
+            // Meal Category Chart
+            const mealCategoryCtx = document.getElementById('mealCategoryChart').getContext('2d');
+            charts.mealCategory = new Chart(mealCategoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Breakfast', 'Lunch', 'Dinner', 'Snack'],
+                    datasets: [{
+                        data: [420, 650, 900, 150],
+                        backgroundColor: [
+                            'rgba(255, 107, 53, 0.8)',
+                            'rgba(255, 136, 77, 0.8)',
+                            'rgba(255, 204, 112, 0.8)',
+                            'rgba(255, 107, 53, 0.5)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Weight Chart
+            const weightCtx = document.getElementById('weightChart').getContext('2d');
+            charts.weight = new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Weight',
+                        data: [77.5, 77.2, 76.0, 75.0],
+                        borderColor: 'rgba(255, 107, 53, 1)',
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Calories Trend Chart
+            const caloriesTrendCtx = document.getElementById('caloriesTrendChart').getContext('2d');
+            charts.caloriesTrend = new Chart(caloriesTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+                    datasets: [{
+                        label: 'Actual Intake',
+                        data: [2100, 2350, 2050, 2450, 2200, 2600, 2400, 2150, 2300, 2250],
+                        borderColor: 'rgba(255, 107, 53, 1)',
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    }, {
+                        label: 'Goal',
+                        data: [2450, 2450, 2450, 2450, 2450, 2450, 2450, 2450, 2450, 2450],
+                        borderColor: 'rgba(76, 175, 80, 0.5)',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('weightPeriod').addEventListener('change', updateWeightChart);
+        }
+
+        function updateWeightChart() {
+            // Update weight chart based on selected period
+            console.log('Weight period changed');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        }
+
+        function loadThemePreference() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+    </script>
+</body>
+</html>

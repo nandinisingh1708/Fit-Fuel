@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - FitFuel</title>
+    <link rel="icon" type="image/png" href="Fitfuel favicon.png" />
+    <style>
+        :root {
+            --brand: #ff6b35;
+            --brand-2: #ff884d;
+            --brand-3: #ffcc70;
+            --text: #222;
+            --text-inv: #fff;
+            --glass-light: rgba(255, 255, 255, 0.5);
+            --glass-dark: rgba(0, 0, 0, 0.45);
+            --card-radius: 16px;
+            --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-2: 0 12px 28px rgba(0, 0, 0, 0.22);
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            scroll-behavior: smooth;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+            min-height: 100vh;
+            color: var(--text);
+            background: linear-gradient(-45deg, #ffecd2, #fcb69f, #ffdde1, #ee9ca7);
+            background-size: 400% 400%;
+            animation: gradientMove 16s ease infinite;
+        }
+
+        body.dark {
+            color: var(--text-inv);
+            background: linear-gradient(-45deg, #141e30, #243b55, #0f2027, #2c5364);
+            background-size: 400% 400%;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Header */
+        header {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--brand);
+            text-decoration: none;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .logout-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--brand);
+            color: var(--text-inv);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: var(--brand-2);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--glass-light);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow-1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-2);
+        }
+
+        body.dark .card {
+            background: var(--glass-dark);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            margin: 0 0 1rem 0;
+            font-size: 1.25rem;
+            color: var(--brand);
+        }
+
+        /* Calorie Counter */
+        .calorie-counter {
+            text-align: center;
+        }
+
+        .calorie-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--brand) 0deg,
+                var(--brand) var(--calorie-percentage, 180deg),
+                rgba(255, 255, 255, 0.2) var(--calorie-percentage, 180deg),
+                rgba(255, 255, 255, 0.2) 360deg
+            );
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem auto;
+            font-weight: bold;
+            color: var(--brand);
+        }
+
+        .calorie-circle span {
+            font-size: 2.5rem;
+        }
+
+        .calorie-circle small {
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.8;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 107, 53, 0.1);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: var(--brand);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text);
+            opacity: 0.7;
+            margin-top: 0.5rem;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand), var(--brand-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-inv);
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: width 0.5s ease;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin: 1rem 0;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        /* Weekly Overview */
+        .weekly-overview {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .day-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 107, 53, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .day-item.today {
+            background: rgba(255, 107, 53, 0.2);
+            border-left-color: var(--brand);
+            font-weight: bold;
+        }
+
+        .day-name {
+            font-size: 0.85rem;
+            color: var(--text);
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+        }
+
+        .day-calories {
+            font-size: 1.25rem;
+            color: var(--brand);
+            font-weight: bold;
+        }
+
+        /* Meal Breakdown */
+        .meal-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .meal-box {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid var(--brand);
+        }
+
+        .meal-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-name {
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .meal-calories {
+            font-size: 1.5rem;
+            color: var(--brand);
+            font-weight: bold;
+        }
+
+        .meal-percentage {
+            font-size: 0.8rem;
+            color: var(--text);
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+
+        /* Recent Activities */
+        .activity-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .activity-item {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: var(--text);
+            opacity: 0.6;
+        }
+
+        .activity-calories {
+            font-weight: bold;
+            color: var(--brand);
+        }
+
+        /* Goals Section */
+        .goals-container {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .goal-item {
+            padding: 1.5rem;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid var(--success);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .goal-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .goal-status {
+            font-size: 0.85rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--success);
+            color: white;
+            border-radius: 20px;
+        }
+
+        .goal-status.warning {
+            background: var(--warning);
+        }
+
+        .goal-status.danger {
+            background: var(--danger);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .calorie-circle {
+                width: 150px;
+                height: 150px;
+            }
+
+            .calorie-circle span {
+                font-size: 1.75rem;
+            }
+
+            .weekly-overview {
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            }
+
+            .day-item {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+
+        /* Loading Animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">🔥 FitFuel</a>
+        <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle">🌙</button>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Welcome Section -->
+        <div style="margin-bottom: 2rem;">
+            <h1>Welcome back, <span id="username">User</span>! 👋</h1>
+            <p style="opacity: 0.8; margin: 0;">Today is <span id="todayDate"></span></p>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Calorie Counter Card -->
+            <div class="card">
+                <h2>📊 Today's Calories</h2>
+                <div class="calorie-counter">
+                    <div class="calorie-circle" id="calorieCircle">
+                        <span id="caloriesConsumed">0</span>
+                        <small>/ <span id="calorieGoal">2450</span></small>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%;">
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+                    <p style="margin: 1rem 0 0 0; color: var(--text); opacity: 0.8;">
+                        <strong id="caloriesRemaining">2450</strong> calories remaining
+                    </p>
+                </div>
+            </div>
+
+            <!-- Daily Stats Card -->
+            <div class="card">
+                <h2>📈 Daily Stats</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="mealsCount">0</div>
+                        <div class="stat-label">Meals</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgCalories">0</div>
+                        <div class="stat-label">Avg/Meal</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="waterIntake">0</div>
+                        <div class="stat-label">Cups Water</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="exerciseTime">0</div>
+                        <div class="stat-label">Min Exercise</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meal Breakdown Card -->
+            <div class="card">
+                <h2>🍽️ Meal Breakdown</h2>
+                <div class="meal-breakdown">
+                    <div class="meal-box">
+                        <div class="meal-icon">🌅</div>
+                        <div class="meal-name">Breakfast</div>
+                        <div class="meal-calories" id="breakfastCal">0</div>
+                        <div class="meal-percentage" id="breakfastPct">0%</div>
+                    </div>
+                    <div class="meal-box">
+                        <div class="meal-icon">☀️</div>
+                        <div class="meal-name">Lunch</div>
+                        <div class="meal-calories" id="lunchCal">0</div>
+                        <div class="meal-percentage" id="lunchPct">0%</div>
+                    </div>
+                    <div class="meal-box">
+                        <div class="meal-icon">🌙</div>
+                        <div class="meal-name">Dinner</div>
+                        <div class="meal-calories" id="dinnerCal">0</div>
+                        <div class="meal-percentage" id="dinnerPct">0%</div>
+                    </div>
+                    <div class="meal-box">
+                        <div class="meal-icon">🍿</div>
+                        <div class="meal-name">Snack</div>
+                        <div class="meal-calories" id="snackCal">0</div>
+                        <div class="meal-percentage" id="snackPct">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row -->
+        <div class="dashboard-grid">
+            <!-- Weekly Overview -->
+            <div class="card" style="grid-column: span 2;">
+                <h2>📅 This Week</h2>
+                <div class="weekly-overview" id="weeklyOverview">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Quick Goals -->
+            <div class="card">
+                <h2>🎯 Goals</h2>
+                <div class="goals-container" id="goalsContainer">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="card">
+            <h2>⏱️ Recent Meals</h2>
+            <ul class="activity-list" id="recentMeals">
+                <li class="activity-item" style="color: var(--text); opacity: 0.6; text-align: center; padding: 2rem;">
+                    No meals logged yet. <a href="meals.html" style="color: var(--brand); text-decoration: none;">Start logging!</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserData();
+            loadDashboardData();
+            setupEventListeners();
+            updateDateTime();
+            setInterval(updateDateTime, 60000);
+        });
+
+        function setupEventListeners() {
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+        }
+
+        function loadUserData() {
+            const user = JSON.parse(localStorage.getItem('currentUser')) || {};
+            document.getElementById('username').textContent = user.fullName || user.username || 'User';
+        }
+
+        function loadDashboardData() {
+            const meals = JSON.parse(localStorage.getItem('meals')) || [];
+            const today = new Date().toISOString().split('T')[0];
+            const todaysMeals = meals.filter(meal => meal.date === today);
+
+            // Calculate totals
+            const totalCalories = todaysMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+            const goal = 2450; // Default, should be from user profile
+            const remaining = Math.max(0, goal - totalCalories);
+            const percentage = Math.min(100, (totalCalories / goal) * 100);
+
+            // Update calorie display
+            document.getElementById('caloriesConsumed').textContent = Math.round(totalCalories);
+            document.getElementById('calorieGoal').textContent = goal;
+            document.getElementById('caloriesRemaining').textContent = Math.round(remaining);
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressPercent').textContent = Math.round(percentage) + '%';
+            document.getElementById('calorieCircle').style.setProperty('--calorie-percentage', (percentage / 100) * 360 + 'deg');
+
+            // Update stats
+            document.getElementById('mealsCount').textContent = todaysMeals.length;
+            document.getElementById('avgCalories').textContent = todaysMeals.length > 0 ? Math.round(totalCalories / todaysMeals.length) : 0;
+
+            // Update meal breakdown
+            const breakdown = {
+                BREAKFAST: 0,
+                LUNCH: 0,
+                DINNER: 0,
+                SNACK: 0
+            };
+
+            todaysMeals.forEach(meal => {
+                const category = meal.category || 'SNACK';
+                if (breakdown.hasOwnProperty(category)) {
+                    breakdown[category] += meal.calories || 0;
+                }
+            });
+
+            Object.keys(breakdown).forEach(category => {
+                const categoryKey = category.toLowerCase();
+                const element = document.getElementById(categoryKey + 'Cal');
+                const percentElement = document.getElementById(categoryKey + 'Pct');
+                if (element) {
+                    element.textContent = Math.round(breakdown[category]);
+                    percentElement.textContent = totalCalories > 0 ? Math.round((breakdown[category] / totalCalories) * 100) + '%' : '0%';
+                }
+            });
+
+            // Update recent meals
+            updateRecentMeals(todaysMeals.slice(-5).reverse());
+
+            // Update weekly overview
+            updateWeeklyOverview();
+        }
+
+        function updateRecentMeals(meals) {
+            const container = document.getElementById('recentMeals');
+            if (meals.length === 0) {
+                container.innerHTML = '<li class="activity-item" style="color: var(--text); opacity: 0.6; text-align: center; padding: 2rem;">No meals logged yet. <a href="meals.html" style="color: var(--brand); text-decoration: none;">Start logging!</a></li>';
+                return;
+            }
+
+            container.innerHTML = meals.map(meal => `
+                <li class="activity-item">
+                    <div class="activity-info">
+                        <div class="activity-title">${meal.name}</div>
+                        <div class="activity-time">${meal.category || 'Snack'} • ${meal.date}</div>
+                    </div>
+                    <div class="activity-calories">${Math.round(meal.calories || 0)} cal</div>
+                </li>
+            `).join('');
+        }
+
+        function updateWeeklyOverview() {
+            const container = document.getElementById('weeklyOverview');
+            const meals = JSON.parse(localStorage.getItem('meals')) || [];
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const today = new Date();
+            let html = '';
+
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayMeals = meals.filter(meal => meal.date === dateStr);
+                const dayCalories = dayMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+                const isToday = dateStr === today.toISOString().split('T')[0];
+
+                html += `
+                    <div class="day-item ${isToday ? 'today' : ''}">
+                        <div class="day-name">${days[date.getDay()]}</div>
+                        <div class="day-calories">${Math.round(dayCalories)}</div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function updateDateTime() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const today = new Date().toLocaleDateString('en-US', options);
+            document.getElementById('todayDate').textContent = today;
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Load theme preference
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark');
+            document.getElementById('themeToggle').textContent = '☀️';
+        }
+    </script>
+</body>
+</html>
